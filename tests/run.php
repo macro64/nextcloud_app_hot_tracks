@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 spl_autoload_register(static function (string $class): void {
-	$prefix = 'OCA\\Strava\\';
+	$prefix = 'OCA\\HotTracks\\';
 	if (!str_starts_with($class, $prefix)) {
 		return;
 	}
@@ -13,9 +13,9 @@ spl_autoload_register(static function (string $class): void {
 	}
 });
 
-use OCA\Strava\Service\ActivityPath;
-use OCA\Strava\Service\GpxBuilder;
-use OCA\Strava\Service\WeekStats;
+use OCA\HotTracks\Service\ActivityPath;
+use OCA\HotTracks\Service\GpxBuilder;
+use OCA\HotTracks\Service\WeekStats;
 
 $failed = 0;
 

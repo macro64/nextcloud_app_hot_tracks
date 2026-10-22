@@ -15,11 +15,11 @@ export default defineConfig({
 			input: path.join(root, 'src/main.js'),
 			output: {
 				format: 'iife',
-				entryFileNames: 'js/strava-main.js',
+				entryFileNames: 'js/hot_tracks-main.js',
 				inlineDynamicImports: true,
 				assetFileNames: (asset) => {
 					const name = asset.names?.[0] ?? asset.name ?? ''
-					if (name.endsWith('.css')) return 'css/strava-main.css'
+					if (name.endsWith('.css')) return 'css/hot_tracks-main.css'
 					return 'js/assets/[name][extname]'
 				},
 			},

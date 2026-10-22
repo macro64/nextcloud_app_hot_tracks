@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Service;
+namespace OCA\HotTracks\Service;
 
-use OCA\Strava\Exception\RateLimitException;
-use OCA\Strava\Exception\StravaApiException;
+use OCA\HotTracks\Exception\RateLimitException;
+use OCA\HotTracks\Exception\TrackingApiException;
 use OCP\Http\Client\IClientService;
 
-class StravaClient {
+class TrackingClient {
 	private const BASE = 'https://www.strava.com/api/v3';
 
 	public function __construct(
@@ -29,7 +29,7 @@ class StravaClient {
 			]);
 			$batch = $this->getJson($token, self::BASE . '/athlete/activities?' . $query);
 			if (!array_is_list($batch)) {
-				throw new StravaApiException('Strava hat keine Aktivitätsliste geliefert.');
+				throw new TrackingApiException('Die activity tracking app hat keine Aktivitätsliste geliefert.');
 			}
 			foreach ($batch as $row) {
 				if (is_array($row)) {
@@ -47,10 +47,10 @@ class StravaClient {
 	/**
 	 * @return array<string, mixed>
 	 */
-	public function activity(string $token, int $stravaId): array {
-		$data = $this->getJson($token, self::BASE . '/activities/' . $stravaId);
+	public function activity(string $token, int $activityId): array {
+		$data = $this->getJson($token, self::BASE . '/activities/' . $activityId);
 		if (array_is_list($data) || !isset($data['id'])) {
-			throw new StravaApiException('Strava hat keine Aktivitätsdetails geliefert.');
+			throw new TrackingApiException('Die activity tracking app hat keine Aktivitätsdetails geliefert.');
 		}
 		return $data;
 	}
@@ -58,12 +58,12 @@ class StravaClient {
 	/**
 	 * @return array<string, mixed>
 	 */
-	public function streams(string $token, int $stravaId): array {
+	public function streams(string $token, int $activityId): array {
 		$query = http_build_query([
 			'keys' => 'latlng,altitude,time',
 			'key_by_type' => 'true',
 		]);
-		$data = $this->getJson($token, self::BASE . '/activities/' . $stravaId . '/streams?' . $query);
+		$data = $this->getJson($token, self::BASE . '/activities/' . $activityId . '/streams?' . $query);
 		return $this->normalizeStreams($data);
 	}
 
@@ -103,12 +103,12 @@ class StravaClient {
 			if ($status === 429) {
 				throw new RateLimitException();
 			}
-			throw new StravaApiException('Strava-Anfrage fehlgeschlagen.', $status, $e);
+			throw new TrackingApiException('Anfrage an die activity tracking app fehlgeschlagen.', $status, $e);
 		}
 
 		$decoded = json_decode($response->getBody(), true);
 		if (!is_array($decoded)) {
-			throw new StravaApiException('Strava-Antwort ist kein JSON.');
+			throw new TrackingApiException('Antwort der activity tracking app ist kein JSON.');
 		}
 		return $decoded;
 	}

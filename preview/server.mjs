@@ -23,7 +23,7 @@ const overview = {
 	},
 	activities: [
 		{
-			stravaId: 42,
+			activityId: 42,
 			name: 'Abendrunde',
 			sport: 'Ride',
 			startTime: Math.floor(Date.now() / 1000) - 86400,
@@ -34,7 +34,7 @@ const overview = {
 			hasGpx: true,
 		},
 		{
-			stravaId: 43,
+			activityId: 43,
 			name: 'Parklauf',
 			sport: 'Run',
 			startTime: Math.floor(Date.now() / 1000) - 3 * 86400,
@@ -61,8 +61,8 @@ const page = `<!doctype html>
 <html lang="de">
 <head>
 	<meta charset="utf-8">
-	<title>Strava Vorschau</title>
-	<link rel="stylesheet" href="/css/strava-main.css">
+	<title>Hot Tracks Vorschau</title>
+	<link rel="stylesheet" href="/css/hot_tracks-main.css">
 	<style>
 		body { margin: 0; font-family: system-ui, sans-serif; background: #fff; color: #1d1d1d; }
 		:root {
@@ -82,12 +82,12 @@ const page = `<!doctype html>
 	</style>
 </head>
 <body>
-	<div id="strava-root"></div>
+	<div id="hot-tracks-root"></div>
 	<script>
 		window._oc_webroot = ''
 		window.OC = { config: { modRewriteWorking: true }, requestToken: 'preview' }
 	</script>
-	<script src="/js/strava-main.js"></script>
+	<script src="/js/hot_tracks-main.js"></script>
 </body>
 </html>`
 
@@ -101,16 +101,16 @@ const server = createServer(async (req, res) => {
 	if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/preview')) {
 		return send(res, 200, page, 'text/html; charset=utf-8')
 	}
-	if (req.method === 'GET' && url.pathname === '/apps/strava/api/overview') {
+	if (req.method === 'GET' && url.pathname === '/apps/hot_tracks/api/overview') {
 		return send(res, 200, JSON.stringify(overview), 'application/json')
 	}
-	if (req.method === 'POST' && url.pathname === '/apps/strava/api/sync') {
+	if (req.method === 'POST' && url.pathname === '/apps/hot_tracks/api/sync') {
 		return send(res, 200, JSON.stringify({ created: 1, skipped: 2, rateLimited: false }), 'application/json')
 	}
-	if (req.method === 'GET' && url.pathname === '/apps/strava/api/activities/42/gpx') {
+	if (req.method === 'GET' && url.pathname === '/apps/hot_tracks/api/activities/42/gpx') {
 		return send(res, 200, gpx, 'application/gpx+xml')
 	}
-	if (req.method === 'GET' && (url.pathname === '/js/strava-main.js' || url.pathname === '/css/strava-main.css')) {
+	if (req.method === 'GET' && (url.pathname === '/js/hot_tracks-main.js' || url.pathname === '/css/hot_tracks-main.css')) {
 		const file = path.join(root, url.pathname)
 		const body = await readFile(file)
 		const type = url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript'

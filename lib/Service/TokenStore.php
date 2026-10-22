@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Service;
+namespace OCA\HotTracks\Service;
 
-use OCA\Strava\Db\Connection;
-use OCA\Strava\Db\ConnectionMapper;
+use OCA\HotTracks\Db\Connection;
+use OCA\HotTracks\Db\ConnectionMapper;
 use OCP\Security\ICrypto;
 
 class TokenStore {

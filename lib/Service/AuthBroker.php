@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Service;
+namespace OCA\HotTracks\Service;
 
-use OCA\Strava\Exception\AuthBrokerException;
+use OCA\HotTracks\Exception\AuthBrokerException;
 use OCP\Http\Client\IClientService;
 
 class AuthBroker {

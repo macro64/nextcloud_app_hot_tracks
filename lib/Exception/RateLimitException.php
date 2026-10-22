@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Exception;
+namespace OCA\HotTracks\Exception;
 
-class RateLimitException extends StravaApiException {
+class RateLimitException extends TrackingApiException {
 	public function __construct() {
-		parent::__construct('Strava-Limit erreicht', 429);
+		parent::__construct('Limit der activity tracking app erreicht', 429);
 	}
 }

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\BackgroundJob;
+namespace OCA\HotTracks\BackgroundJob;
 
-use OCA\Strava\Db\ConnectionMapper;
-use OCA\Strava\Service\SyncService;
+use OCA\HotTracks\Db\ConnectionMapper;
+use OCA\HotTracks\Service\SyncService;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
@@ -27,16 +27,16 @@ class SyncJob extends TimedJob {
 			try {
 				$result = $this->sync->syncUser($uid);
 			} catch (\Throwable $e) {
-				$this->logger->warning('Strava-Abgleich fehlgeschlagen', [
-					'app' => 'strava',
+				$this->logger->warning('Abgleich mit der activity tracking app fehlgeschlagen', [
+					'app' => 'hot_tracks',
 					'uid' => $uid,
 					'exception' => $e,
 				]);
 				continue;
 			}
 			if ($result->rateLimited) {
-				$this->logger->info('Strava-Limit erreicht, weiterer Abgleich wartet auf den nächsten Lauf', [
-					'app' => 'strava',
+				$this->logger->info('Limit der activity tracking app erreicht, weiterer Abgleich wartet auf den nächsten Lauf', [
+					'app' => 'hot_tracks',
 				]);
 				return;
 			}

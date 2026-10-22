@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Controller;
+namespace OCA\HotTracks\Controller;
 
-use OCA\Strava\AppInfo\Application;
+use OCA\HotTracks\AppInfo\Application;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -28,8 +28,8 @@ class PageController extends Controller {
 		$policy = new ContentSecurityPolicy();
 		$policy->addAllowedImageDomain('tile.openstreetmap.org');
 		$response->setContentSecurityPolicy($policy);
-		Util::addScript(Application::APP_ID, 'strava-main');
-		Util::addStyle(Application::APP_ID, 'strava-main');
+		Util::addScript(Application::APP_ID, 'hot_tracks-main');
+		Util::addStyle(Application::APP_ID, 'hot_tracks-main');
 		return $response;
 	}
 }

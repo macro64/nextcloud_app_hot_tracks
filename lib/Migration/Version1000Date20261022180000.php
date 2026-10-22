@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Migration;
+namespace OCA\HotTracks\Migration;
 
 use Closure;
 use OCP\DB\ISchemaWrapper;
@@ -15,8 +15,8 @@ class Version1000Date20261022180000 extends SimpleMigrationStep {
 		/** @var ISchemaWrapper $schema */
 		$schema = $schemaClosure();
 
-		if (!$schema->hasTable('strava_connections')) {
-			$table = $schema->createTable('strava_connections');
+		if (!$schema->hasTable('hot_tracks_connections')) {
+			$table = $schema->createTable('hot_tracks_connections');
 			$table->addColumn('id', Types::BIGINT, [
 				'autoincrement' => true,
 				'notnull' => true,
@@ -54,11 +54,11 @@ class Version1000Date20261022180000 extends SimpleMigrationStep {
 				'length' => 20,
 			]);
 			$table->setPrimaryKey(['id']);
-			$table->addUniqueIndex(['uid'], 'strava_conn_uid');
+			$table->addUniqueIndex(['uid'], 'hot_tracks_conn_uid');
 		}
 
-		if (!$schema->hasTable('strava_activities')) {
-			$table = $schema->createTable('strava_activities');
+		if (!$schema->hasTable('hot_tracks_activities')) {
+			$table = $schema->createTable('hot_tracks_activities');
 			$table->addColumn('id', Types::BIGINT, [
 				'autoincrement' => true,
 				'notnull' => true,
@@ -69,7 +69,7 @@ class Version1000Date20261022180000 extends SimpleMigrationStep {
 				'notnull' => true,
 				'length' => 64,
 			]);
-			$table->addColumn('strava_id', Types::BIGINT, [
+			$table->addColumn('activity_id', Types::BIGINT, [
 				'notnull' => true,
 				'length' => 20,
 			]);
@@ -106,8 +106,8 @@ class Version1000Date20261022180000 extends SimpleMigrationStep {
 				'length' => 20,
 			]);
 			$table->setPrimaryKey(['id']);
-			$table->addUniqueIndex(['uid', 'strava_id'], 'strava_act_uid_sid');
-			$table->addIndex(['uid', 'start_time'], 'strava_act_uid_time');
+			$table->addUniqueIndex(['uid', 'activity_id'], 'hot_tracks_act_uid_id');
+			$table->addIndex(['uid', 'start_time'], 'hot_tracks_act_uid_time');
 		}
 
 		return $schema;

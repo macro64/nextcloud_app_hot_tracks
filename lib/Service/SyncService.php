@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Service;
+namespace OCA\HotTracks\Service;
 
-use OCA\Strava\AppInfo\Application;
-use OCA\Strava\Db\Activity;
-use OCA\Strava\Db\ActivityMapper;
-use OCA\Strava\Db\ConnectionMapper;
-use OCA\Strava\Exception\RateLimitException;
-use OCA\Strava\Exception\StravaApiException;
+use OCA\HotTracks\AppInfo\Application;
+use OCA\HotTracks\Db\Activity;
+use OCA\HotTracks\Db\ActivityMapper;
+use OCA\HotTracks\Db\ConnectionMapper;
+use OCA\HotTracks\Exception\RateLimitException;
+use OCA\HotTracks\Exception\TrackingApiException;
 use OCP\IConfig;
 use OCP\IDateTimeZone;
 
@@ -22,7 +22,7 @@ class SyncService {
 		private ConnectionMapper $connections,
 		private ActivityMapper $activities,
 		private TokenStore $tokens,
-		private StravaClient $strava,
+		private TrackingClient $tracking,
 		private GpxBuilder $gpxBuilder,
 		private ActivityFiles $files,
 		private IDateTimeZone $timeZones,
@@ -48,33 +48,33 @@ class SyncService {
 			if ($after === null || $after <= 0) {
 				$after = time() - self::INITIAL_WINDOW;
 			}
-			$listed = $this->strava->listActivities($token, $after);
+			$listed = $this->tracking->listActivities($token, $after);
 			foreach ($listed as $summary) {
-				$stravaId = (int)($summary['id'] ?? 0);
-				if ($stravaId <= 0) {
+				$activityId = (int)($summary['id'] ?? 0);
+				if ($activityId <= 0) {
 					continue;
 				}
-				if ($this->activities->findByStravaId($uid, $stravaId) !== null) {
+				if ($this->activities->findByActivityId($uid, $activityId) !== null) {
 					$skipped++;
 					continue;
 				}
 				try {
-					$detail = $this->strava->activity($token, $stravaId);
-				} catch (StravaApiException $e) {
+					$detail = $this->tracking->activity($token, $activityId);
+				} catch (TrackingApiException $e) {
 					if ($e->getCode() !== 404) {
 						throw $e;
 					}
 					$detail = $summary;
 				}
 				try {
-					$streams = $this->strava->streams($token, $stravaId);
-				} catch (StravaApiException $e) {
+					$streams = $this->tracking->streams($token, $activityId);
+				} catch (TrackingApiException $e) {
 					if ($e->getCode() !== 404) {
 						throw $e;
 					}
 					$streams = [];
 				}
-				if ($this->store($uid, $stravaId, $detail, $streams)) {
+				if ($this->store($uid, $activityId, $detail, $streams)) {
 					$created++;
 				} else {
 					$skipped++;
@@ -94,10 +94,10 @@ class SyncService {
 	 * @param array<string, mixed> $detail
 	 * @param array<string, mixed> $streams
 	 */
-	private function store(string $uid, int $stravaId, array $detail, array $streams): bool {
+	private function store(string $uid, int $activityId, array $detail, array $streams): bool {
 		$name = trim((string)($detail['name'] ?? ''));
 		if ($name === '') {
-			$name = 'Aktivität ' . $stravaId;
+			$name = 'Aktivität ' . $activityId;
 		}
 		$name = mb_substr($name, 0, 512);
 		$sport = trim((string)($detail['sport_type'] ?? $detail['type'] ?? 'Activity'));
@@ -117,12 +117,12 @@ class SyncService {
 		$fileId = null;
 		if ($gpx !== '') {
 			$local = $start->setTimezone($this->timeZones->getTimeZone($uid));
-			$fileId = $this->files->writeGpx($uid, $local, $stravaId, $name, $gpx);
+			$fileId = $this->files->writeGpx($uid, $local, $activityId, $name, $gpx);
 		}
 
 		$entity = new Activity();
 		$entity->setUid($uid);
-		$entity->setStravaId($stravaId);
+		$entity->setActivityId($activityId);
 		$entity->setName($name);
 		$entity->setSportType($sport);
 		$entity->setStartTime($startTime);
@@ -137,7 +137,7 @@ class SyncService {
 		try {
 			$this->activities->insert($entity);
 		} catch (\Throwable $e) {
-			if ($this->activities->findByStravaId($uid, $stravaId) !== null) {
+			if ($this->activities->findByActivityId($uid, $activityId) !== null) {
 				return false;
 			}
 			throw $e;
