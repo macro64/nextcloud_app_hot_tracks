@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>strava</id>
+	<name>Strava</name>
+	<summary>Eigene Strava-Aktivitäten privat ablegen</summary>
+	<description><![CDATA[Holt Aktivitäten über den fluadrits-Auth-Broker, speichert GPX-Dateien im persönlichen Ordner und zeigt die letzten 7 Tage.]]></description>
+	<version>0.1.0</version>
+	<licence>agpl</licence>
+	<namespace>Strava</namespace>
+	<category>integration</category>
+	<dependencies>
+		<nextcloud min-version="31" max-version="36"/>
+	</dependencies>
+	<navigations>
+		<navigation>
+			<id>strava</id>
+			<name>Strava</name>
+			<route>strava.page.index</route>
+			<icon>app.svg</icon>
+			<order>25</order>
+		</navigation>
+	</navigations>
+	<settings>
+		<admin>OCA\Strava\Settings\Admin</admin>
+		<admin-section>OCA\Strava\Settings\AdminSection</admin-section>
+	</settings>
+	<background-jobs>
+		<job>OCA\Strava\BackgroundJob\SyncJob</job>
+	</background-jobs>
+</info>
