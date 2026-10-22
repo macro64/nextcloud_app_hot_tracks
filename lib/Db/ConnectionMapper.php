@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Db;
+namespace OCA\HotTracks\Db;
 
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\QBMapper;
@@ -12,7 +12,7 @@ use OCP\IDBConnection;
 /** @extends QBMapper<Connection> */
 class ConnectionMapper extends QBMapper {
 	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'strava_connections', Connection::class);
+		parent::__construct($db, 'hot_tracks_connections', Connection::class);
 	}
 
 	public function findByUid(string $uid): ?Connection {

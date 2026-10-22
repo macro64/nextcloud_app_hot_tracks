@@ -21,7 +21,7 @@ const gpxError = ref('')
 let map
 let layer
 
-const gpxUrl = computed(() => generateUrl(`/apps/strava/api/activities/${props.activity.stravaId}/gpx`))
+const gpxUrl = computed(() => generateUrl(`/apps/hot_tracks/api/activities/${props.activity.activityId}/gpx`))
 const profile = computed(() => elevationLine(points.value))
 const elevationSpan = computed(() => {
 	const values = points.value.map((point) => point.ele).filter((value) => Number.isFinite(value))
@@ -88,7 +88,7 @@ function resetMap() {
 }
 
 onMounted(loadGpx)
-watch(() => props.activity.stravaId, () => {
+watch(() => props.activity.activityId, () => {
 	resetMap()
 	loadGpx()
 })
@@ -97,32 +97,32 @@ onBeforeUnmount(resetMap)
 
 <template>
 	<article>
-		<div class="strava-detail-head">
+		<div class="hot-tracks-detail-head">
 			<div>
-				<p class="strava-kicker">{{ sportLabel(activity.sport) }}</p>
+				<p class="hot-tracks-kicker">{{ sportLabel(activity.sport) }}</p>
 				<h2>{{ activity.name }}</h2>
-				<p class="strava-muted">{{ formatWhen(activity.startTime, timeZone) }}</p>
+				<p class="hot-tracks-muted">{{ formatWhen(activity.startTime, timeZone) }}</p>
 			</div>
-			<div class="strava-actions">
+			<div class="hot-tracks-actions">
 				<NcButton @click="emit('back')">Zurück</NcButton>
 				<NcButton v-if="activity.hasGpx" type="primary" :href="gpxUrl">GPX herunterladen</NcButton>
 			</div>
 		</div>
 
-		<section class="strava-stats">
-			<div class="strava-stat"><span>Distanz</span><strong>{{ formatDistance(activity.distance) }}</strong></div>
-			<div class="strava-stat"><span>Bewegung</span><strong>{{ formatDuration(activity.movingTime) }}</strong></div>
-			<div class="strava-stat"><span>Gesamt</span><strong>{{ formatDuration(activity.elapsedTime) }}</strong></div>
-			<div class="strava-stat"><span>Höhe</span><strong>{{ formatElevation(activity.elevation) }}</strong></div>
+		<section class="hot-tracks-stats">
+			<div class="hot-tracks-stat"><span>Distanz</span><strong>{{ formatDistance(activity.distance) }}</strong></div>
+			<div class="hot-tracks-stat"><span>Bewegung</span><strong>{{ formatDuration(activity.movingTime) }}</strong></div>
+			<div class="hot-tracks-stat"><span>Gesamt</span><strong>{{ formatDuration(activity.elapsedTime) }}</strong></div>
+			<div class="hot-tracks-stat"><span>Höhe</span><strong>{{ formatElevation(activity.elevation) }}</strong></div>
 		</section>
-		<p class="strava-muted">Tempo: {{ tempoLabel(activity) }}</p>
+		<p class="hot-tracks-muted">Tempo: {{ tempoLabel(activity) }}</p>
 
-		<div v-if="activity.hasGpx && !gpxError" ref="mapEl" class="strava-map" />
-		<p v-else-if="gpxError" class="strava-error">{{ gpxError }}</p>
-		<p v-else class="strava-empty">Keine GPS-Spur. Die Zusammenfassung steht trotzdem zur Verfügung.</p>
+		<div v-if="activity.hasGpx && !gpxError" ref="mapEl" class="hot-tracks-map" />
+		<p v-else-if="gpxError" class="hot-tracks-error">{{ gpxError }}</p>
+		<p v-else class="hot-tracks-empty">Keine GPS-Spur. Die Zusammenfassung steht trotzdem zur Verfügung.</p>
 
-		<div v-if="profile" class="strava-profile">
-			<p class="strava-muted">Höhe entlang der Spur<span v-if="elevationSpan"> · {{ elevationSpan }}</span></p>
+		<div v-if="profile" class="hot-tracks-profile">
+			<p class="hot-tracks-muted">Höhe entlang der Spur<span v-if="elevationSpan"> · {{ elevationSpan }}</span></p>
 			<svg viewBox="0 0 640 72" role="img" aria-label="Höhenprofil">
 				<polyline :points="profile" />
 			</svg>

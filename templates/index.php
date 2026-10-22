@@ -1,7 +1,7 @@
 <?php
 /** @var array $_ */
 ?>
-<div id="strava-root"></div>
+<div id="hot-tracks-root"></div>
 <noscript>
-	<p>Die Strava-Ansicht braucht JavaScript.</p>
+	<p>Die Hot-Tracks-Ansicht braucht JavaScript.</p>
 </noscript>

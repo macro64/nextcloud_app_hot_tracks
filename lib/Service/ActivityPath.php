@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Service;
+namespace OCA\HotTracks\Service;
 
 class ActivityPath {
 	public static function slug(string $name): string {
@@ -22,7 +22,7 @@ class ActivityPath {
 		return substr($slug, 0, 40);
 	}
 
-	public static function filename(\DateTimeImmutable $startLocal, int $stravaId, string $name): string {
-		return sprintf('%s_%d_%s.gpx', $startLocal->format('Y-m-d'), $stravaId, self::slug($name));
+	public static function filename(\DateTimeImmutable $startLocal, int $activityId, string $name): string {
+		return sprintf('%s_%d_%s.gpx', $startLocal->format('Y-m-d'), $activityId, self::slug($name));
 	}
 }

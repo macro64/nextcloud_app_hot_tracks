@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Db;
+namespace OCA\HotTracks\Db;
 
 use OCP\AppFramework\Db\Entity;
 use OCP\DB\Types;

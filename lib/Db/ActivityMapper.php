@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Db;
+namespace OCA\HotTracks\Db;
 
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\QBMapper;
@@ -12,15 +12,15 @@ use OCP\IDBConnection;
 /** @extends QBMapper<Activity> */
 class ActivityMapper extends QBMapper {
 	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'strava_activities', Activity::class);
+		parent::__construct($db, 'hot_tracks_activities', Activity::class);
 	}
 
-	public function findByStravaId(string $uid, int $stravaId): ?Activity {
+	public function findByActivityId(string $uid, int $activityId): ?Activity {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-			->andWhere($qb->expr()->eq('strava_id', $qb->createNamedParameter($stravaId, IQueryBuilder::PARAM_INT)));
+			->andWhere($qb->expr()->eq('activity_id', $qb->createNamedParameter($activityId, IQueryBuilder::PARAM_INT)));
 		try {
 			/** @var Activity $entity */
 			$entity = $this->findEntity($qb);

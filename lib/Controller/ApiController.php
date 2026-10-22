@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Controller;
+namespace OCA\HotTracks\Controller;
 
-use OCA\Strava\Db\Activity;
-use OCA\Strava\Db\ActivityMapper;
-use OCA\Strava\Db\ConnectionMapper;
-use OCA\Strava\Exception\AuthBrokerException;
-use OCA\Strava\Exception\StravaApiException;
-use OCA\Strava\Service\ActivityFiles;
-use OCA\Strava\Service\ActivityPath;
-use OCA\Strava\Service\AppConfig;
-use OCA\Strava\Service\SyncService;
-use OCA\Strava\Service\WeekStats;
+use OCA\HotTracks\Db\Activity;
+use OCA\HotTracks\Db\ActivityMapper;
+use OCA\HotTracks\Db\ConnectionMapper;
+use OCA\HotTracks\Exception\AuthBrokerException;
+use OCA\HotTracks\Exception\TrackingApiException;
+use OCA\HotTracks\Service\ActivityFiles;
+use OCA\HotTracks\Service\ActivityPath;
+use OCA\HotTracks\Service\AppConfig;
+use OCA\HotTracks\Service\SyncService;
+use OCA\HotTracks\Service\WeekStats;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -71,15 +71,15 @@ class ApiController extends Controller {
 		try {
 			$result = $this->sync->syncUser($this->uid());
 		} catch (AuthBrokerException) {
-			return new JSONResponse(['error' => 'Strava-Zugriff abgelaufen. Bitte die Verbindung erneuern.'], Http::STATUS_BAD_GATEWAY);
-		} catch (StravaApiException $e) {
+			return new JSONResponse(['error' => 'Zugriff auf die activity tracking app abgelaufen. Bitte die Verbindung erneuern.'], Http::STATUS_BAD_GATEWAY);
+		} catch (TrackingApiException $e) {
 			if ($e->getCode() === 401) {
-				return new JSONResponse(['error' => 'Strava hat den Zugriff abgelehnt. Bitte die Verbindung erneuern.'], Http::STATUS_UNAUTHORIZED);
+				return new JSONResponse(['error' => 'Die activity tracking app hat den Zugriff abgelehnt. Bitte die Verbindung erneuern.'], Http::STATUS_UNAUTHORIZED);
 			}
-			return new JSONResponse(['error' => 'Strava-Anfrage fehlgeschlagen.'], Http::STATUS_BAD_GATEWAY);
+			return new JSONResponse(['error' => 'Anfrage an die activity tracking app fehlgeschlagen.'], Http::STATUS_BAD_GATEWAY);
 		} catch (\RuntimeException $e) {
 			if ($e->getMessage() === 'Nicht verbunden') {
-				return new JSONResponse(['error' => 'Noch nicht mit Strava verbunden.'], Http::STATUS_CONFLICT);
+				return new JSONResponse(['error' => 'Noch nicht mit der activity tracking app verbunden.'], Http::STATUS_CONFLICT);
 			}
 			throw $e;
 		}
@@ -102,8 +102,8 @@ class ApiController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function activity(int $stravaId): JSONResponse {
-		$row = $this->activities->findByStravaId($this->uid(), $stravaId);
+	public function activity(int $activityId): JSONResponse {
+		$row = $this->activities->findByActivityId($this->uid(), $activityId);
 		if ($row === null) {
 			return new JSONResponse(['error' => 'Aktivität nicht gefunden.'], Http::STATUS_NOT_FOUND);
 		}
@@ -112,15 +112,15 @@ class ApiController extends Controller {
 
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function gpx(int $stravaId): DataDownloadResponse|JSONResponse {
-		$row = $this->activities->findByStravaId($this->uid(), $stravaId);
+	public function gpx(int $activityId): DataDownloadResponse|JSONResponse {
+		$row = $this->activities->findByActivityId($this->uid(), $activityId);
 		if ($row === null || $row->getFileId() === null) {
 			return new JSONResponse(['error' => 'Keine GPX-Datei.'], Http::STATUS_NOT_FOUND);
 		}
 		try {
 			$content = $this->files->readById($this->uid(), (int)$row->getFileId());
 		} catch (NotFoundException) {
-			return new JSONResponse(['error' => 'GPX-Datei fehlt im Ordner Strava.'], Http::STATUS_NOT_FOUND);
+			return new JSONResponse(['error' => 'GPX-Datei fehlt im Ordner Hot Tracks.'], Http::STATUS_NOT_FOUND);
 		}
 		$name = $this->downloadName($row);
 		return new DataDownloadResponse($content, $name, 'application/gpx+xml');
@@ -136,7 +136,7 @@ class ApiController extends Controller {
 		$timezone = $this->timeZones->getTimeZone($uid);
 		[$from, $to] = WeekStats::window($timezone);
 		$rows = $this->activities->findBetween($uid, $from, $to);
-		$tmp = tempnam(sys_get_temp_dir(), 'strava');
+		$tmp = tempnam(sys_get_temp_dir(), 'hot_tracks');
 		if ($tmp === false) {
 			return new JSONResponse(['error' => 'ZIP konnte nicht angelegt werden.'], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
@@ -169,7 +169,7 @@ class ApiController extends Controller {
 		if ($bytes === false) {
 			return new JSONResponse(['error' => 'ZIP konnte nicht gelesen werden.'], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
-		return new DataDownloadResponse($bytes, 'strava-7-tage.zip', 'application/zip');
+		return new DataDownloadResponse($bytes, 'hot-tracks-7-tage.zip', 'application/zip');
 	}
 
 	private function uid(): string {
@@ -180,11 +180,11 @@ class ApiController extends Controller {
 	}
 
 	/**
-	 * @return array{stravaId: int, name: string, sport: string, startTime: int, distance: float, movingTime: int, elapsedTime: int, elevation: float, hasGpx: bool}
+	 * @return array{activityId: int, name: string, sport: string, startTime: int, distance: float, movingTime: int, elapsedTime: int, elevation: float, hasGpx: bool}
 	 */
 	private function present(Activity $activity): array {
 		return [
-			'stravaId' => $activity->getStravaId(),
+			'activityId' => $activity->getActivityId(),
 			'name' => $activity->getName(),
 			'sport' => $activity->getSportType(),
 			'startTime' => $activity->getStartTime(),
@@ -199,6 +199,6 @@ class ApiController extends Controller {
 	private function downloadName(Activity $activity): string {
 		$timezone = $this->timeZones->getTimeZone($activity->getUid());
 		$start = (new \DateTimeImmutable('@' . $activity->getStartTime()))->setTimezone($timezone);
-		return ActivityPath::filename($start, $activity->getStravaId(), $activity->getName());
+		return ActivityPath::filename($start, $activity->getActivityId(), $activity->getName());
 	}
 }

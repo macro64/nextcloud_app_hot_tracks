@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Settings;
+namespace OCA\HotTracks\Settings;
 
 use OCP\IURLGenerator;
 use OCP\Settings\IIconSection;
@@ -14,11 +14,11 @@ class AdminSection implements IIconSection {
 	}
 
 	public function getID(): string {
-		return 'strava';
+		return 'hot_tracks';
 	}
 
 	public function getName(): string {
-		return 'Strava';
+		return 'Hot Tracks';
 	}
 
 	public function getPriority(): int {
@@ -26,6 +26,6 @@ class AdminSection implements IIconSection {
 	}
 
 	public function getIcon(): string {
-		return $this->urlGenerator->imagePath('strava', 'app.svg');
+		return $this->urlGenerator->imagePath('hot_tracks', 'app.svg');
 	}
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Service;
+namespace OCA\HotTracks\Service;
 
 class GpxBuilder {
 	private const NS = 'http://www.topografix.com/GPX/1/1';
@@ -24,7 +24,7 @@ class GpxBuilder {
 		$doc->formatOutput = true;
 		$gpx = $doc->createElementNS(self::NS, 'gpx');
 		$gpx->setAttribute('version', '1.1');
-		$gpx->setAttribute('creator', 'Nextcloud Strava');
+		$gpx->setAttribute('creator', 'Hot Tracks');
 		$doc->appendChild($gpx);
 
 		$metadata = $this->element($doc, 'metadata');

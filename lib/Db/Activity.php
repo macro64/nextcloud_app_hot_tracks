@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Db;
+namespace OCA\HotTracks\Db;
 
 use OCP\AppFramework\Db\Entity;
 use OCP\DB\Types;
@@ -10,8 +10,8 @@ use OCP\DB\Types;
 /**
  * @method void setUid(string $uid)
  * @method string getUid()
- * @method void setStravaId(int $stravaId)
- * @method int getStravaId()
+ * @method void setActivityId(int $activityId)
+ * @method int getActivityId()
  * @method void setName(string $name)
  * @method string getName()
  * @method void setSportType(string $sportType)
@@ -33,7 +33,7 @@ use OCP\DB\Types;
  */
 class Activity extends Entity {
 	protected string $uid = '';
-	protected int $stravaId = 0;
+	protected int $activityId = 0;
 	protected string $name = '';
 	protected string $sportType = '';
 	protected int $startTime = 0;
@@ -45,7 +45,7 @@ class Activity extends Entity {
 	protected int $syncedAt = 0;
 
 	public function __construct() {
-		$this->addType('stravaId', Types::BIGINT);
+		$this->addType('activityId', Types::BIGINT);
 		$this->addType('startTime', Types::BIGINT);
 		$this->addType('distance', Types::FLOAT);
 		$this->addType('movingTime', Types::INTEGER);

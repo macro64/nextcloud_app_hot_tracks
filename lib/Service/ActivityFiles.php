@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Service;
+namespace OCA\HotTracks\Service;
 
 use OCP\Files\File;
 use OCP\Files\Folder;
@@ -15,12 +15,12 @@ class ActivityFiles {
 	) {
 	}
 
-	public function writeGpx(string $uid, \DateTimeImmutable $startLocal, int $stravaId, string $name, string $gpx): int {
+	public function writeGpx(string $uid, \DateTimeImmutable $startLocal, int $activityId, string $name, string $gpx): int {
 		$userFolder = $this->root->getUserFolder($uid);
-		$folder = $this->childFolder($userFolder, 'Strava');
+		$folder = $this->childFolder($userFolder, 'Hot Tracks');
 		$folder = $this->childFolder($folder, $startLocal->format('Y'));
 		$folder = $this->childFolder($folder, $startLocal->format('m'));
-		$filename = ActivityPath::filename($startLocal, $stravaId, $name);
+		$filename = ActivityPath::filename($startLocal, $activityId, $name);
 
 		try {
 			$node = $folder->get($filename);
@@ -41,7 +41,7 @@ class ActivityFiles {
 	public function readById(string $uid, int $fileId): string {
 		$nodes = $this->root->getUserFolder($uid)->getById($fileId);
 		foreach ($nodes as $node) {
-			if ($node instanceof File && str_contains($node->getPath(), '/files/Strava/')) {
+			if ($node instanceof File && str_contains($node->getPath(), '/files/Hot Tracks/')) {
 				return $node->getContent();
 			}
 		}

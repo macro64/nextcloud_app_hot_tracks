@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Controller;
+namespace OCA\HotTracks\Controller;
 
-use OCA\Strava\Service\AppConfig;
+use OCA\HotTracks\Service\AppConfig;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\IRequest;
@@ -23,22 +23,22 @@ class AdminController extends Controller {
 	}
 
 	public function save(): RedirectResponse {
-		$target = $this->urlGenerator->getAbsoluteURL('/settings/admin/strava');
+		$target = $this->urlGenerator->getAbsoluteURL('/settings/admin/hot_tracks');
 		$url = trim((string)$this->request->getParam('authServiceUrl', ''));
 		$clientId = trim((string)$this->request->getParam('authClientId', ''));
 		$secret = (string)$this->request->getParam('authClientSecret', '');
 
 		if (!preg_match('#^https://#', $url) && !preg_match('#^http://(localhost|127\.0\.0\.1)(:\d+)?(/|$)#', $url)) {
-			$this->session->set('strava_admin_error', 'Die Auth-URL muss HTTPS sein.');
+			$this->session->set('hot_tracks_admin_error', 'Die Auth-URL muss HTTPS sein.');
 			return new RedirectResponse($target);
 		}
 		if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $clientId)) {
-			$this->session->set('strava_admin_error', 'Die Client-ID darf nur Buchstaben, Ziffern, Unterstrich und Bindestrich enthalten.');
+			$this->session->set('hot_tracks_admin_error', 'Die Client-ID darf nur Buchstaben, Ziffern, Unterstrich und Bindestrich enthalten.');
 			return new RedirectResponse($target);
 		}
 
 		$this->appConfig->save($url, $clientId, $secret !== '' ? $secret : null);
-		$this->session->set('strava_admin_notice', 'Gespeichert.');
+		$this->session->set('hot_tracks_admin_notice', 'Gespeichert.');
 		return new RedirectResponse($target);
 	}
 }

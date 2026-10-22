@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Settings;
+namespace OCA\HotTracks\Settings;
 
-use OCA\Strava\AppInfo\Application;
-use OCA\Strava\Service\AppConfig;
+use OCA\HotTracks\AppInfo\Application;
+use OCA\HotTracks\Service\AppConfig;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -20,24 +20,24 @@ class Admin implements ISettings {
 	}
 
 	public function getForm(): TemplateResponse {
-		$error = $this->session->get('strava_admin_error');
-		$notice = $this->session->get('strava_admin_notice');
-		$this->session->remove('strava_admin_error');
-		$this->session->remove('strava_admin_notice');
+		$error = $this->session->get('hot_tracks_admin_error');
+		$notice = $this->session->get('hot_tracks_admin_notice');
+		$this->session->remove('hot_tracks_admin_error');
+		$this->session->remove('hot_tracks_admin_notice');
 
 		return new TemplateResponse(Application::APP_ID, 'admin', [
 			'authServiceUrl' => $this->appConfig->authServiceUrl(),
 			'authClientId' => $this->appConfig->clientId(),
 			'secretSet' => $this->appConfig->clientSecret() !== '',
 			'redirectUri' => $this->appConfig->redirectUri(),
-			'saveUrl' => $this->urlGenerator->linkToRoute('strava.admin.save'),
+			'saveUrl' => $this->urlGenerator->linkToRoute('hot_tracks.admin.save'),
 			'error' => is_string($error) ? $error : '',
 			'notice' => is_string($notice) ? $notice : '',
 		], '');
 	}
 
 	public function getSection(): string {
-		return 'strava';
+		return 'hot_tracks';
 	}
 
 	public function getPriority(): int {

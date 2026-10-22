@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\Strava\Service;
+namespace OCA\HotTracks\Service;
 
-use OCA\Strava\AppInfo\Application;
+use OCA\HotTracks\AppInfo\Application;
 use OCP\IConfig;
 use OCP\IURLGenerator;
 
@@ -36,7 +36,7 @@ class AppConfig {
 	}
 
 	public function redirectUri(): string {
-		return $this->urlGenerator->linkToRouteAbsolute('strava.auth.callback');
+		return $this->urlGenerator->linkToRouteAbsolute('hot_tracks.auth.callback');
 	}
 
 	public function isConfigured(): bool {
