@@ -11,6 +11,8 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IRequest;
+use OCP\IURLGenerator;
+use OCP\Server;
 use OCP\Util;
 
 class PageController extends Controller {
@@ -28,8 +30,13 @@ class PageController extends Controller {
 		$policy = new ContentSecurityPolicy();
 		$policy->addAllowedImageDomain('tile.openstreetmap.org');
 		$response->setContentSecurityPolicy($policy);
-		Util::addScript(Application::APP_ID, 'hot_tracks-main');
-		Util::addStyle(Application::APP_ID, 'hot_tracks-main');
+		$root = dirname(__DIR__, 2);
+		$cssVersion = is_file($root . '/css/hot_tracks-main.css') ? filemtime($root . '/css/hot_tracks-main.css') : time();
+		$url = Server::get(IURLGenerator::class);
+		Util::addHeader('link', [
+			'rel' => 'stylesheet',
+			'href' => $url->linkTo(Application::APP_ID, 'css/hot_tracks-main.css') . '?v=' . $cssVersion,
+		]);
 		return $response;
 	}
 }

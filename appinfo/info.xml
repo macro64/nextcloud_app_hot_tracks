@@ -3,15 +3,18 @@
 	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>hot_tracks</id>
 	<name>Hot Tracks</name>
-	<summary>Eigene Aktivitäten aus der activity tracking app privat ablegen</summary>
-	<description><![CDATA[Holt Aktivitäten über den fluadrits-Auth-Broker, speichert GPX-Dateien im persönlichen Ordner und zeigt die letzten 7 Tage.]]></description>
-	<version>0.1.0</version>
+	<summary>Eigene Strava-Aktivitäten privat in Nextcloud ablegen</summary>
+	<description><![CDATA[Verbindet Strava per direktem OAuth (oder optional Auth-Proxy), holt Aktivitäten (Monat, Jahr, 5 Jahre oder alles), speichert GPX-Dateien im persönlichen Ordner und zeigt die letzten 7 Tage.]]></description>
+	<version>1.0.0</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author mail="mail@walter-precht.de">Walter Precht</author>
+	<website>https://github.com/macro64/nextcloud_app_hot_tracks</website>
+	<bugs>https://github.com/macro64/nextcloud_app_hot_tracks/issues</bugs>
+	<repository>https://github.com/macro64/nextcloud_app_hot_tracks</repository>
 	<namespace>HotTracks</namespace>
 	<category>integration</category>
 	<dependencies>
-		<nextcloud min-version="31" max-version="36"/>
+		<nextcloud min-version="32" max-version="36"/>
 	</dependencies>
 	<navigations>
 		<navigation>
@@ -23,6 +26,8 @@
 		</navigation>
 	</navigations>
 	<settings>
+		<personal>OCA\HotTracks\Settings\Personal</personal>
+		<personal-section>OCA\HotTracks\Settings\AdminSection</personal-section>
 		<admin>OCA\HotTracks\Settings\Admin</admin>
 		<admin-section>OCA\HotTracks\Settings\AdminSection</admin-section>
 	</settings>

@@ -19,29 +19,41 @@ class TrackingClient {
 	/**
 	 * @return list<array<string, mixed>>
 	 */
-	public function listActivities(string $token, int $after): array {
+	public function listActivities(string $token, int $after, int $maxPages = 10): array {
 		$all = [];
-		for ($page = 1; $page <= 10; $page++) {
-			$query = http_build_query([
-				'after' => $after,
-				'page' => $page,
-				'per_page' => 50,
-			]);
-			$batch = $this->getJson($token, self::BASE . '/athlete/activities?' . $query);
-			if (!array_is_list($batch)) {
-				throw new TrackingApiException('Die activity tracking app hat keine Aktivitätsliste geliefert.');
-			}
+		for ($page = 1; $page <= $maxPages; $page++) {
+			$batch = $this->listActivitiesPage($token, $after, $page);
 			foreach ($batch as $row) {
-				if (is_array($row)) {
-					/** @var array<string, mixed> $row */
-					$all[] = $row;
-				}
+				$all[] = $row;
 			}
 			if (count($batch) < 50) {
 				break;
 			}
 		}
 		return $all;
+	}
+
+	/**
+	 * @return list<array<string, mixed>>
+	 */
+	public function listActivitiesPage(string $token, int $after, int $page): array {
+		$query = http_build_query([
+			'after' => $after,
+			'page' => $page,
+			'per_page' => 50,
+		]);
+		$batch = $this->getJson($token, self::BASE . '/athlete/activities?' . $query);
+		if (!array_is_list($batch)) {
+			throw new TrackingApiException('Die activity tracking app hat keine Aktivitätsliste geliefert.');
+		}
+		$out = [];
+		foreach ($batch as $row) {
+			if (is_array($row)) {
+				/** @var array<string, mixed> $row */
+				$out[] = $row;
+			}
+		}
+		return $out;
 	}
 
 	/**

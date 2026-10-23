@@ -11,6 +11,7 @@ const overview = {
 	connected: true,
 	athleteName: 'Ada Beispiel',
 	timeZone: 'Europe/Berlin',
+	storedCount: 42,
 	stats: {
 		count: 2,
 		distance: 15200,
@@ -105,7 +106,7 @@ const server = createServer(async (req, res) => {
 		return send(res, 200, JSON.stringify(overview), 'application/json')
 	}
 	if (req.method === 'POST' && url.pathname === '/apps/hot_tracks/api/sync') {
-		return send(res, 200, JSON.stringify({ created: 1, skipped: 2, rateLimited: false }), 'application/json')
+		return send(res, 200, JSON.stringify({ created: 1, updated: 1, skipped: 2, rateLimited: false, range: 'month' }), 'application/json')
 	}
 	if (req.method === 'GET' && url.pathname === '/apps/hot_tracks/api/activities/42/gpx') {
 		return send(res, 200, gpx, 'application/gpx+xml')

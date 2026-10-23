@@ -5,7 +5,7 @@ import { generateUrl } from '@nextcloud/router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import { elevationLine, parseGpx } from '../lib/gpx.js'
+import { bikerouterUrl, elevationLine, parseGpx } from '../lib/gpx.js'
 import { formatDistance, formatDuration, formatElevation, formatWhen, sportLabel, tempoLabel } from '../lib/format.js'
 
 const props = defineProps({
@@ -22,6 +22,7 @@ let map
 let layer
 
 const gpxUrl = computed(() => generateUrl(`/apps/hot_tracks/api/activities/${props.activity.activityId}/gpx`))
+const routerUrl = computed(() => bikerouterUrl(points.value))
 const profile = computed(() => elevationLine(points.value))
 const elevationSpan = computed(() => {
 	const values = points.value.map((point) => point.ele).filter((value) => Number.isFinite(value))
@@ -105,6 +106,13 @@ onBeforeUnmount(resetMap)
 			</div>
 			<div class="hot-tracks-actions">
 				<NcButton @click="emit('back')">Zurück</NcButton>
+				<a
+					v-if="routerUrl"
+					class="button"
+					:href="routerUrl"
+					target="_blank"
+					rel="noreferrer noopener"
+				>Mit Bikerouter öffnen</a>
 				<NcButton v-if="activity.hasGpx" type="primary" :href="gpxUrl">GPX herunterladen</NcButton>
 			</div>
 		</div>

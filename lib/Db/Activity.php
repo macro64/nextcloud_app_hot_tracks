@@ -54,4 +54,27 @@ class Activity extends Entity {
 		$this->addType('fileId', Types::BIGINT);
 		$this->addType('syncedAt', Types::BIGINT);
 	}
+
+	/**
+	 * Felder mit Wert 0 werden sonst nicht als geändert erkannt und fehlen im INSERT.
+	 */
+	public function markRequiredForInsert(): void {
+		foreach ([
+			'uid',
+			'activityId',
+			'name',
+			'sportType',
+			'startTime',
+			'distance',
+			'movingTime',
+			'elapsedTime',
+			'elevation',
+			'syncedAt',
+		] as $field) {
+			$this->markFieldUpdated($field);
+		}
+		if ($this->fileId !== null) {
+			$this->markFieldUpdated('fileId');
+		}
+	}
 }
