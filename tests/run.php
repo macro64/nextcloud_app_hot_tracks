@@ -14,6 +14,7 @@ spl_autoload_register(static function (string $class): void {
 });
 
 use OCA\HotTracks\Service\ActivityPath;
+use OCA\HotTracks\Service\AuthServiceUrl;
 use OCA\HotTracks\Service\GpxBuilder;
 use OCA\HotTracks\Service\GpxCopyPath;
 use OCA\HotTracks\Service\SportGroup;
@@ -172,5 +173,13 @@ $archive = GpxCopyPath::normalize('Hot Tracks/Export');
 check($archive['error'] !== '' && $archive['path'] === '', 'hot tracks bleibt der eigene ablageort');
 $slash = GpxCopyPath::normalize('Sport\\GPX');
 check($slash['error'] === '' && $slash['path'] === 'Sport/GPX', 'backslash wird zum ordnertrenner');
+
+check(AuthServiceUrl::validate('https://auth.example.com') === '', 'https auth-url ok');
+check(AuthServiceUrl::validate('http://127.0.0.1:8080/') === '', 'lokales http ok');
+check(AuthServiceUrl::validate('http://auth.example.com') !== '', 'http ohne localhost abgelehnt');
+check(AuthServiceUrl::validate('https://192.168.1.10/oauth') !== '', 'private ip literal abgelehnt');
+check(AuthServiceUrl::validate('https://10.0.0.5') !== '', 'rfc1918 ip abgelehnt');
+check(AuthServiceUrl::validate('https://user:pass@auth.example.com') !== '', 'url-credentials abgelehnt');
+check(AuthServiceUrl::validate('not-a-url') !== '', 'ungueltige auth-url abgelehnt');
 
 exit($failed === 0 ? 0 : 1);

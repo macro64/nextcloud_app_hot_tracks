@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\HotTracks\Controller;
 
 use OCA\HotTracks\Service\AppConfig;
+use OCA\HotTracks\Service\AuthServiceUrl;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\IRequest;
@@ -33,8 +34,9 @@ class AdminController extends Controller {
 			return new RedirectResponse($target);
 		}
 
-		if (!preg_match('#^https://#', $url) && !preg_match('#^http://(localhost|127\.0\.0\.1)(:\d+)?(/|$)#', $url)) {
-			$this->session->set('hot_tracks_admin_error', 'Die Auth-URL muss HTTPS sein.');
+		$urlError = AuthServiceUrl::validate($url);
+		if ($urlError !== '') {
+			$this->session->set('hot_tracks_admin_error', $urlError);
 			return new RedirectResponse($target);
 		}
 		if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $clientId)) {

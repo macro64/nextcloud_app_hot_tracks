@@ -7,6 +7,7 @@ namespace OCA\HotTracks\Controller;
 use OCA\HotTracks\Db\ActivityMapper;
 use OCA\HotTracks\Db\ConnectionMapper;
 use OCA\HotTracks\Service\ActivityFiles;
+use OCA\HotTracks\Service\AuthServiceUrl;
 use OCA\HotTracks\Service\GpxCopyFolder;
 use OCA\HotTracks\Service\GpxCopyPath;
 use OCA\HotTracks\Service\SportGroup;
@@ -56,8 +57,9 @@ class PersonalController extends Controller {
 		$proxyUrl = trim((string)$this->request->getParam('proxyUrl', ''));
 
 		if ($mode === UserAuthConfig::MODE_PROXY) {
-			if (!preg_match('#^https://#', $proxyUrl) && !preg_match('#^http://(localhost|127\.0\.0\.1)(:\d+)?(/|$)#', $proxyUrl)) {
-				$this->session->set('hot_tracks_personal_error', 'Die Auth-Proxy-URL muss HTTPS sein.');
+			$urlError = AuthServiceUrl::validate($proxyUrl);
+			if ($urlError !== '') {
+				$this->session->set('hot_tracks_personal_error', $urlError);
 				return new RedirectResponse($target);
 			}
 			if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $clientId)) {
