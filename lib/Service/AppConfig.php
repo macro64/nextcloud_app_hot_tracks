@@ -19,15 +19,16 @@ class AppConfig {
 	}
 
 	public function authServiceUrl(): string {
-		$url = trim($this->config->getAppValue(Application::APP_ID, 'auth_service_url', self::DEFAULT_AUTH_URL));
+		$url = trim($this->config->getAppValue(Application::APP_ID, 'auth_service_url', ''));
 		if ($url === '') {
+			// Anzeige-Default in der Admin-UI; isConfigured() verlangt trotzdem ein Secret.
 			$url = self::DEFAULT_AUTH_URL;
 		}
 		return rtrim($url, '/');
 	}
 
 	public function clientId(): string {
-		$id = trim($this->config->getAppValue(Application::APP_ID, 'auth_client_id', self::DEFAULT_CLIENT_ID));
+		$id = trim($this->config->getAppValue(Application::APP_ID, 'auth_client_id', ''));
 		return $id !== '' ? $id : self::DEFAULT_CLIENT_ID;
 	}
 
@@ -37,6 +38,32 @@ class AppConfig {
 
 	public function redirectUri(): string {
 		return $this->urlGenerator->linkToRouteAbsolute('hot_tracks.auth.callback');
+	}
+
+	/**
+	 * Geheimer Pfad-Anteil der Webhook-URL. Wird beim ersten Abruf erzeugt.
+	 */
+	public function webhookToken(): string {
+		$token = $this->config->getAppValue(Application::APP_ID, 'webhook_token', '');
+		if (!is_string($token) || !preg_match('/^[a-f0-9]{64}$/', $token)) {
+			$token = bin2hex(random_bytes(32));
+			$this->config->setAppValue(Application::APP_ID, 'webhook_token', $token);
+		}
+		return $token;
+	}
+
+	public function webhookTokenMatches(string $token): bool {
+		$stored = $this->config->getAppValue(Application::APP_ID, 'webhook_token', '');
+		if (!is_string($stored) || $stored === '' || $token === '') {
+			return false;
+		}
+		return hash_equals($stored, $token);
+	}
+
+	public function webhookUrl(): string {
+		return $this->urlGenerator->linkToRouteAbsolute('hot_tracks.webhook.receive', [
+			'token' => $this->webhookToken(),
+		]);
 	}
 
 	public function isConfigured(): bool {

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace OCA\HotTracks\Controller;
 
 use OCA\HotTracks\Exception\AuthBrokerException;
-use OCA\HotTracks\Service\AppConfig;
 use OCA\HotTracks\Service\AuthBroker;
 use OCA\HotTracks\Service\TokenStore;
+use OCA\HotTracks\Service\UserAuthConfig;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -21,7 +21,7 @@ class AuthController extends Controller {
 		string $appName,
 		IRequest $request,
 		private ?string $userId,
-		private AppConfig $appConfig,
+		private UserAuthConfig $userAuth,
 		private AuthBroker $broker,
 		private TokenStore $tokens,
 		private ISession $session,
@@ -37,12 +37,12 @@ class AuthController extends Controller {
 		if ($this->userId === null || $this->userId === '') {
 			return new RedirectResponse($page);
 		}
-		if (!$this->appConfig->isConfigured()) {
+		if (!$this->userAuth->isConfigured($this->userId)) {
 			return new RedirectResponse($page . '?error=config');
 		}
 		$state = bin2hex(random_bytes(16));
 		$this->session->set('hot_tracks_oauth_state', $state);
-		return new RedirectResponse($this->broker->authorizationUrl($state));
+		return new RedirectResponse($this->broker->authorizationUrl($this->userId, $state));
 	}
 
 	#[NoAdminRequired]
@@ -66,7 +66,7 @@ class AuthController extends Controller {
 		}
 
 		try {
-			$tokens = $this->broker->exchangeCode($code);
+			$tokens = $this->broker->exchangeCode($this->userId, $code);
 			$this->tokens->saveFromTokenResponse($this->userId, $tokens);
 		} catch (AuthBrokerException) {
 			return new RedirectResponse($page . '?error=oauth');

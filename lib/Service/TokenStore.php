@@ -46,7 +46,7 @@ class TokenStore {
 			return $this->crypto->decrypt($connection->getAccessToken());
 		}
 		$refreshToken = $this->crypto->decrypt($connection->getRefreshToken());
-		$refreshed = $this->broker->refresh($refreshToken);
+		$refreshed = $this->broker->refresh($connection->getUid(), $refreshToken);
 		$this->applyTokens(
 			$connection,
 			$refreshed['access_token'],

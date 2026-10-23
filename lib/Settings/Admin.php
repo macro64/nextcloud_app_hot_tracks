@@ -30,6 +30,7 @@ class Admin implements ISettings {
 			'authClientId' => $this->appConfig->clientId(),
 			'secretSet' => $this->appConfig->clientSecret() !== '',
 			'redirectUri' => $this->appConfig->redirectUri(),
+			'webhookUrl' => $this->appConfig->webhookUrl(),
 			'saveUrl' => $this->urlGenerator->linkToRoute('hot_tracks.admin.save'),
 			'error' => is_string($error) ? $error : '',
 			'notice' => is_string($notice) ? $notice : '',

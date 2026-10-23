@@ -25,3 +25,43 @@ export function elevationLine(points) {
 		return `${x.toFixed(1)},${y.toFixed(1)}`
 	}).join(' ')
 }
+
+/**
+ * Gleichmäßig ausgedünnte Spur für die Bikerouter-URL (lon,lat;…).
+ * @param {Array<{lat: number, lon: number}>} points
+ * @param {number} maxPoints
+ */
+export function sampleTrack(points, maxPoints = 80) {
+	const usable = points.filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon))
+	if (usable.length === 0) return []
+	if (usable.length <= maxPoints) return usable
+	const last = usable.length - 1
+	const picked = []
+	for (let index = 0; index < maxPoints; index++) {
+		const at = Math.round((index / (maxPoints - 1)) * last)
+		if (picked.length === 0 || picked[picked.length - 1] !== at) {
+			picked.push(at)
+		}
+	}
+	if (picked[picked.length - 1] !== last) {
+		picked.push(last)
+	}
+	return picked.map((index) => usable[index])
+}
+
+/**
+ * Link zu bikerouter.de mit Kartenmitte und lonlats-Wegpunkten.
+ * @see https://bikerouter.de/
+ */
+export function bikerouterUrl(points) {
+	const sampled = sampleTrack(points, 80)
+	if (sampled.length < 2) return ''
+	const lats = sampled.map((point) => point.lat)
+	const lons = sampled.map((point) => point.lon)
+	const lat = (Math.min(...lats) + Math.max(...lats)) / 2
+	const lon = (Math.min(...lons) + Math.max(...lons)) / 2
+	const lonlats = sampled
+		.map((point) => `${point.lon.toFixed(6)},${point.lat.toFixed(6)}`)
+		.join(';')
+	return `https://bikerouter.de/#map=14/${lat.toFixed(4)}/${lon.toFixed(4)}/OpenTopoMap,route-quality&lonlats=${lonlats}`
+}

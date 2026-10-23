@@ -28,6 +28,11 @@ class AdminController extends Controller {
 		$clientId = trim((string)$this->request->getParam('authClientId', ''));
 		$secret = (string)$this->request->getParam('authClientSecret', '');
 
+		if ($url === '' && $clientId === '' && $secret === '' && $this->appConfig->clientSecret() === '') {
+			$this->session->set('hot_tracks_admin_notice', 'Kein Proxy hinterlegt — Nutzer verbinden sich direkt über Strava.');
+			return new RedirectResponse($target);
+		}
+
 		if (!preg_match('#^https://#', $url) && !preg_match('#^http://(localhost|127\.0\.0\.1)(:\d+)?(/|$)#', $url)) {
 			$this->session->set('hot_tracks_admin_error', 'Die Auth-URL muss HTTPS sein.');
 			return new RedirectResponse($target);
@@ -36,9 +41,13 @@ class AdminController extends Controller {
 			$this->session->set('hot_tracks_admin_error', 'Die Client-ID darf nur Buchstaben, Ziffern, Unterstrich und Bindestrich enthalten.');
 			return new RedirectResponse($target);
 		}
+		if ($secret === '' && $this->appConfig->clientSecret() === '') {
+			$this->session->set('hot_tracks_admin_error', 'Bitte das Client-Secret eintragen.');
+			return new RedirectResponse($target);
+		}
 
 		$this->appConfig->save($url, $clientId, $secret !== '' ? $secret : null);
-		$this->session->set('hot_tracks_admin_notice', 'Gespeichert.');
+		$this->session->set('hot_tracks_admin_notice', 'Proxy gespeichert.');
 		return new RedirectResponse($target);
 	}
 }

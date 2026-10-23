@@ -45,4 +45,33 @@ class ActivityMapper extends QBMapper {
 		$rows = $this->findEntities($qb);
 		return $rows;
 	}
+
+	/**
+	 * Neueste Aktivitäten zuerst. Die Übersicht listet damit den gespeicherten Verlauf,
+	 * nicht nur das 7-Tage-Fenster.
+	 *
+	 * @return list<Activity>
+	 */
+	public function findByUid(string $uid, int $limit = 1000): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+			->orderBy('start_time', 'DESC')
+			->setMaxResults(max(1, $limit));
+		/** @var list<Activity> $rows */
+		$rows = $this->findEntities($qb);
+		return $rows;
+	}
+
+	public function countByUid(string $uid): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*'))
+			->from($this->getTableName())
+			->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)));
+		$result = $qb->executeQuery();
+		$count = (int)$result->fetchOne();
+		$result->closeCursor();
+		return $count;
+	}
 }

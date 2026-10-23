@@ -32,6 +32,22 @@ class ConnectionMapper extends QBMapper {
 	/**
 	 * @return list<Connection>
 	 */
+	public function findByAthleteId(int $athleteId): array {
+		if ($athleteId <= 0) {
+			return [];
+		}
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('athlete_id', $qb->createNamedParameter($athleteId, IQueryBuilder::PARAM_INT)));
+		/** @var list<Connection> $rows */
+		$rows = $this->findEntities($qb);
+		return $rows;
+	}
+
+	/**
+	 * @return list<Connection>
+	 */
 	public function findAll(): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')->from($this->getTableName());

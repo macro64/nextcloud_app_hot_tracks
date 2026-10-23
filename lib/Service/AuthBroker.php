@@ -8,34 +8,52 @@ use OCA\HotTracks\Exception\AuthBrokerException;
 use OCP\Http\Client\IClientService;
 
 class AuthBroker {
+	private const STRAVA_AUTHORIZE = 'https://www.strava.com/oauth/authorize';
+	private const STRAVA_TOKEN = 'https://www.strava.com/oauth/token';
+	private const SCOPE = 'read,activity:read_all';
+
 	public function __construct(
-		private AppConfig $appConfig,
+		private UserAuthConfig $userAuth,
 		private IClientService $clientService,
 	) {
 	}
 
-	public function authorizationUrl(string $state): string {
+	public function authorizationUrl(string $uid, string $state): string {
+		$clientId = $this->userAuth->clientId($uid);
+		$redirect = $this->userAuth->redirectUri();
+		if ($this->userAuth->usesProxy($uid)) {
+			$query = http_build_query([
+				'client_id' => $clientId,
+				'redirect_uri' => $redirect,
+				'state' => $state,
+			], '', '&', PHP_QUERY_RFC3986);
+			return $this->userAuth->proxyUrl($uid) . '/oauth/strava?' . $query;
+		}
+
 		$query = http_build_query([
-			'client_id' => $this->appConfig->clientId(),
-			'redirect_uri' => $this->appConfig->redirectUri(),
+			'client_id' => $clientId,
+			'redirect_uri' => $redirect,
+			'response_type' => 'code',
+			'approval_prompt' => 'auto',
+			'scope' => self::SCOPE,
 			'state' => $state,
 		], '', '&', PHP_QUERY_RFC3986);
-		return $this->appConfig->authServiceUrl() . '/oauth/strava?' . $query;
+		return self::STRAVA_AUTHORIZE . '?' . $query;
 	}
 
 	/**
 	 * @return array{access_token: string, refresh_token: string, expires_at: int, scope?: string, athlete: array{id: int, firstname?: string, lastname?: string}}
 	 */
-	public function exchangeCode(string $code): array {
-		$data = $this->post([
+	public function exchangeCode(string $uid, string $code): array {
+		$data = $this->tokenRequest($uid, [
 			'grant_type' => 'authorization_code',
 			'code' => $code,
-			'client_id' => $this->appConfig->clientId(),
-			'client_secret' => $this->appConfig->clientSecret(),
-			'redirect_uri' => $this->appConfig->redirectUri(),
+			'client_id' => $this->userAuth->clientId($uid),
+			'client_secret' => $this->userAuth->clientSecret($uid),
+			'redirect_uri' => $this->userAuth->redirectUri(),
 		]);
 		if (!isset($data['access_token'], $data['refresh_token'], $data['expires_at'], $data['athlete']['id'])) {
-			throw new AuthBrokerException('Der Auth-Dienst hat keine vollständigen Tokens geliefert.');
+			throw new AuthBrokerException('Keine vollständigen Tokens geliefert.');
 		}
 		return $data;
 	}
@@ -43,15 +61,15 @@ class AuthBroker {
 	/**
 	 * @return array{access_token: string, refresh_token: string, expires_at: int}
 	 */
-	public function refresh(string $refreshToken): array {
-		$data = $this->post([
+	public function refresh(string $uid, string $refreshToken): array {
+		$data = $this->tokenRequest($uid, [
 			'grant_type' => 'refresh_token',
 			'refresh_token' => $refreshToken,
-			'client_id' => $this->appConfig->clientId(),
-			'client_secret' => $this->appConfig->clientSecret(),
+			'client_id' => $this->userAuth->clientId($uid),
+			'client_secret' => $this->userAuth->clientSecret($uid),
 		]);
 		if (!isset($data['access_token'], $data['refresh_token'], $data['expires_at'])) {
-			throw new AuthBrokerException('Der Auth-Dienst hat keine neuen Tokens geliefert.');
+			throw new AuthBrokerException('Keine neuen Tokens geliefert.');
 		}
 		return [
 			'access_token' => (string)$data['access_token'],
@@ -64,24 +82,43 @@ class AuthBroker {
 	 * @param array<string, string> $payload
 	 * @return array<string, mixed>
 	 */
-	private function post(array $payload): array {
+	private function tokenRequest(string $uid, array $payload): array {
 		$client = $this->clientService->newClient();
+		$usesProxy = $this->userAuth->usesProxy($uid);
+		$url = $usesProxy
+			? $this->userAuth->proxyUrl($uid) . '/oauth/token'
+			: self::STRAVA_TOKEN;
+
 		try {
-			$response = $client->post($this->appConfig->authServiceUrl() . '/oauth/token', [
-				'headers' => [
-					'Content-Type' => 'application/json',
-					'Accept' => 'application/json',
-				],
-				'body' => json_encode($payload, JSON_THROW_ON_ERROR),
-				'timeout' => 20,
-			]);
+			if ($usesProxy) {
+				$response = $client->post($url, [
+					'headers' => [
+						'Content-Type' => 'application/json',
+						'Accept' => 'application/json',
+					],
+					'body' => json_encode($payload, JSON_THROW_ON_ERROR),
+					'timeout' => 20,
+				]);
+			} else {
+				$response = $client->post($url, [
+					'headers' => [
+						'Accept' => 'application/json',
+					],
+					'body' => $payload,
+					'timeout' => 20,
+				]);
+			}
 		} catch (\Throwable $e) {
-			throw new AuthBrokerException('Der Auth-Dienst ist nicht erreichbar.', (int)$e->getCode(), $e);
+			throw new AuthBrokerException(
+				$usesProxy ? 'Der Auth-Dienst ist nicht erreichbar.' : 'Strava ist nicht erreichbar.',
+				(int)$e->getCode(),
+				$e,
+			);
 		}
 
 		$decoded = json_decode($response->getBody(), true);
 		if (!is_array($decoded)) {
-			throw new AuthBrokerException('Der Auth-Dienst hat kein JSON geliefert.');
+			throw new AuthBrokerException('Die Antwort war kein JSON.');
 		}
 		/** @var array<string, mixed> $decoded */
 		return $decoded;

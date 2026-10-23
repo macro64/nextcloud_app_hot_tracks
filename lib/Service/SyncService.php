@@ -25,76 +25,174 @@ class SyncService {
 		private TrackingClient $tracking,
 		private GpxBuilder $gpxBuilder,
 		private ActivityFiles $files,
+		private SportPreferences $sports,
 		private IDateTimeZone $timeZones,
 		private IConfig $config,
 	) {
 	}
 
-	public function syncUser(string $uid): SyncResult {
+	/**
+	 * @param string|null $range Monat, Jahr, 5y oder all – null = inkrementell (Hintergrundjob)
+	 */
+	public function syncUser(string $uid, ?string $range = null): SyncResult {
 		$connection = $this->connections->findByUid($uid);
 		if ($connection === null) {
 			throw new \RuntimeException('Nicht verbunden');
 		}
+		if ($range !== null && !SyncRange::isValid($range)) {
+			throw new \InvalidArgumentException('Unbekannter Zeitraum');
+		}
 		if ($this->locked($uid)) {
-			return new SyncResult(0, 0, false, true);
+			return new SyncResult(0, 0, 0, false, true);
 		}
 		$this->lock($uid);
 
 		$created = 0;
+		$updated = 0;
 		$skipped = 0;
 		try {
 			$token = $this->tokens->accessToken($connection);
-			$after = $connection->getLastSyncAfter();
-			if ($after === null || $after <= 0) {
-				$after = time() - self::INITIAL_WINDOW;
+			if ($range !== null) {
+				$after = SyncRange::after($range);
+			} else {
+				$after = $connection->getLastSyncAfter();
+				if ($after === null || $after <= 0) {
+					$after = time() - self::INITIAL_WINDOW;
+				}
 			}
-			$listed = $this->tracking->listActivities($token, $after);
-			foreach ($listed as $summary) {
-				$activityId = (int)($summary['id'] ?? 0);
-				if ($activityId <= 0) {
-					continue;
-				}
-				if ($this->activities->findByActivityId($uid, $activityId) !== null) {
-					$skipped++;
-					continue;
-				}
-				try {
-					$detail = $this->tracking->activity($token, $activityId);
-				} catch (TrackingApiException $e) {
-					if ($e->getCode() !== 404) {
-						throw $e;
+			$maxPages = SyncRange::maxPages($range);
+			for ($page = 1; $page <= $maxPages; $page++) {
+				$batch = $this->tracking->listActivitiesPage($token, $after, $page);
+				foreach ($batch as $summary) {
+					$activityId = (int)($summary['id'] ?? 0);
+					if ($activityId <= 0) {
+						continue;
 					}
-					$detail = $summary;
-				}
-				try {
-					$streams = $this->tracking->streams($token, $activityId);
-				} catch (TrackingApiException $e) {
-					if ($e->getCode() !== 404) {
-						throw $e;
+					$summarySport = trim((string)($summary['sport_type'] ?? $summary['type'] ?? ''));
+					if ($summarySport !== '' && !$this->sports->allows($uid, $summarySport)) {
+						$skipped++;
+						continue;
 					}
-					$streams = [];
+					$existing = $this->activities->findByActivityId($uid, $activityId);
+					// Vollständige Einträge überspringen; ohne GPX erneut holen (Upsert).
+					if ($existing !== null && $existing->getFileId() !== null) {
+						$skipped++;
+						continue;
+					}
+					try {
+						$detail = $this->tracking->activity($token, $activityId);
+					} catch (TrackingApiException $e) {
+						if ($e->getCode() !== 404) {
+							throw $e;
+						}
+						$detail = $summary;
+					}
+					$detailSport = trim((string)($detail['sport_type'] ?? $detail['type'] ?? $summarySport));
+					if ($detailSport !== '' && !$this->sports->allows($uid, $detailSport)) {
+						$skipped++;
+						continue;
+					}
+					try {
+						$streams = $this->tracking->streams($token, $activityId);
+					} catch (TrackingApiException $e) {
+						if ($e->getCode() !== 404) {
+							throw $e;
+						}
+						$streams = [];
+					}
+					$outcome = $this->store($uid, $activityId, $detail, $streams, $existing);
+					if ($outcome === 'created') {
+						$created++;
+					} elseif ($outcome === 'updated') {
+						$updated++;
+					} else {
+						$skipped++;
+					}
 				}
-				if ($this->store($uid, $activityId, $detail, $streams)) {
-					$created++;
-				} else {
-					$skipped++;
+				if (count($batch) < 50) {
+					break;
 				}
 			}
 			$connection->setLastSyncAfter(time() - self::OVERLAP);
 			$this->connections->update($connection);
-			return new SyncResult($created, $skipped, false);
+			return new SyncResult($created, $updated, $skipped, false);
 		} catch (RateLimitException) {
-			return new SyncResult($created, $skipped, true);
+			return new SyncResult($created, $updated, $skipped, true);
 		} finally {
 			$this->unlock($uid);
 		}
 	}
 
 	/**
+	 * Eine Aktivität sofort nachziehen. Überspringt vollständige Einträge nicht,
+	 * damit eine Änderung an Name oder Strecke ankommt.
+	 *
+	 * @return 'created'|'updated'|'skipped'|'missing'
+	 */
+	public function pullActivity(string $uid, int $activityId): string {
+		$connection = $this->connections->findByUid($uid);
+		if ($connection === null) {
+			throw new \RuntimeException('Nicht verbunden');
+		}
+		$token = $this->tokens->accessToken($connection);
+		$existing = $this->activities->findByActivityId($uid, $activityId);
+		$previousFileId = $existing?->getFileId();
+		try {
+			$detail = $this->tracking->activity($token, $activityId);
+		} catch (TrackingApiException $e) {
+			if ($e->getCode() === 404) {
+				return 'missing';
+			}
+			throw $e;
+		}
+		$detailSport = trim((string)($detail['sport_type'] ?? $detail['type'] ?? ''));
+		if ($detailSport !== '' && !$this->sports->allows($uid, $detailSport)) {
+			return 'skipped';
+		}
+		try {
+			$streams = $this->tracking->streams($token, $activityId);
+		} catch (TrackingApiException $e) {
+			if ($e->getCode() !== 404) {
+				throw $e;
+			}
+			$streams = [];
+		}
+		$outcome = $this->store($uid, $activityId, $detail, $streams, $existing);
+		if ($previousFileId !== null) {
+			$fresh = $this->activities->findByActivityId($uid, $activityId);
+			$newFileId = $fresh?->getFileId();
+			if ($newFileId !== null && $newFileId !== $previousFileId) {
+				try {
+					$this->files->deleteById($uid, $previousFileId);
+				} catch (\Throwable) {
+				}
+			}
+		}
+		return $outcome;
+	}
+
+	public function removeActivity(string $uid, int $activityId): bool {
+		$existing = $this->activities->findByActivityId($uid, $activityId);
+		if ($existing === null) {
+			return false;
+		}
+		$fileId = $existing->getFileId();
+		if ($fileId !== null) {
+			try {
+				$this->files->deleteById($uid, $fileId);
+			} catch (\Throwable) {
+			}
+		}
+		$this->activities->delete($existing);
+		return true;
+	}
+
+	/**
 	 * @param array<string, mixed> $detail
 	 * @param array<string, mixed> $streams
+	 * @return 'created'|'updated'|'skipped'
 	 */
-	private function store(string $uid, int $activityId, array $detail, array $streams): bool {
+	private function store(string $uid, int $activityId, array $detail, array $streams, ?Activity $existing): string {
 		$name = trim((string)($detail['name'] ?? ''));
 		if ($name === '') {
 			$name = 'Aktivität ' . $activityId;
@@ -116,33 +214,53 @@ class SyncService {
 
 		$fileId = null;
 		if ($gpx !== '') {
-			$local = $start->setTimezone($this->timeZones->getTimeZone($uid));
+			$local = $start->setTimezone($this->timeZones->getTimeZone(false, $uid));
 			$fileId = $this->files->writeGpx($uid, $local, $activityId, $name, $gpx);
 		}
 
-		$entity = new Activity();
+		$distance = (float)($detail['distance'] ?? 0);
+		$movingTime = (int)($detail['moving_time'] ?? 0);
+		$elapsedTime = (int)($detail['elapsed_time'] ?? 0);
+		$elevation = (float)($detail['total_elevation_gain'] ?? 0);
+
+		$entity = $existing ?? new Activity();
 		$entity->setUid($uid);
 		$entity->setActivityId($activityId);
 		$entity->setName($name);
 		$entity->setSportType($sport);
 		$entity->setStartTime($startTime);
-		$entity->setDistance((float)($detail['distance'] ?? 0));
-		$entity->setMovingTime((int)($detail['moving_time'] ?? 0));
-		$entity->setElapsedTime((int)($detail['elapsed_time'] ?? 0));
-		$entity->setElevation((float)($detail['total_elevation_gain'] ?? 0));
+		// Erst Nicht-Default setzen, sonst lässt Entity 0-Werte beim Speichern weg.
+		$entity->setDistance($distance + 1.0);
+		$entity->setDistance($distance);
+		$entity->setMovingTime($movingTime + 1);
+		$entity->setMovingTime($movingTime);
+		$entity->setElapsedTime($elapsedTime + 1);
+		$entity->setElapsedTime($elapsedTime);
+		$entity->setElevation($elevation + 1.0);
+		$entity->setElevation($elevation);
 		if ($fileId !== null) {
 			$entity->setFileId($fileId);
 		}
 		$entity->setSyncedAt(time());
+		$entity->markRequiredForInsert();
+
+		if ($existing !== null) {
+			$this->activities->update($entity);
+			return 'updated';
+		}
+
 		try {
 			$this->activities->insert($entity);
 		} catch (\Throwable $e) {
-			if ($this->activities->findByActivityId($uid, $activityId) !== null) {
-				return false;
+			$again = $this->activities->findByActivityId($uid, $activityId);
+			if ($again === null) {
+				throw $e;
 			}
-			throw $e;
+			$entity->setId($again->getId());
+			$this->activities->update($entity);
+			return 'updated';
 		}
-		return true;
+		return 'created';
 	}
 
 	/**

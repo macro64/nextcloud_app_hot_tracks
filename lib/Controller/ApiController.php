@@ -11,8 +11,12 @@ use OCA\HotTracks\Exception\AuthBrokerException;
 use OCA\HotTracks\Exception\TrackingApiException;
 use OCA\HotTracks\Service\ActivityFiles;
 use OCA\HotTracks\Service\ActivityPath;
-use OCA\HotTracks\Service\AppConfig;
+use OCA\HotTracks\Service\SportGroup;
+use OCA\HotTracks\Service\SportPreferences;
+use OCA\HotTracks\Service\SyncRange;
 use OCA\HotTracks\Service\SyncService;
+use OCA\HotTracks\Service\TrackPoints;
+use OCA\HotTracks\Service\UserAuthConfig;
 use OCA\HotTracks\Service\WeekStats;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -29,11 +33,12 @@ class ApiController extends Controller {
 		string $appName,
 		IRequest $request,
 		private ?string $userId,
-		private AppConfig $appConfig,
+		private UserAuthConfig $userAuth,
 		private ConnectionMapper $connections,
 		private ActivityMapper $activities,
 		private ActivityFiles $files,
 		private SyncService $sync,
+		private SportPreferences $sports,
 		private IDateTimeZone $timeZones,
 	) {
 		parent::__construct($appName, $request);
@@ -43,10 +48,17 @@ class ApiController extends Controller {
 	public function overview(): JSONResponse {
 		$uid = $this->uid();
 		$connection = $this->connections->findByUid($uid);
-		$timezone = $this->timeZones->getTimeZone($uid);
-		[$from, $to] = WeekStats::window($timezone);
-		$rows = $connection === null ? [] : $this->activities->findBetween($uid, $from, $to);
-		$payloads = array_map($this->present(...), $rows);
+		$timezone = $this->timeZones->getTimeZone(false, $uid);
+		$modes = $this->sports->resolveFilter($uid, $this->requestSportFilter());
+		$stored = $connection === null ? [] : $this->activities->findByUid($uid);
+		$payloads = [];
+		foreach ($stored as $activity) {
+			$sport = $activity->getSportType();
+			if (!SportGroup::matchesAny($modes, $sport)) {
+				continue;
+			}
+			$payloads[] = $this->present($activity);
+		}
 		$stats = WeekStats::summarize(array_map(static function (array $row): array {
 			return [
 				'sport' => $row['sport'],
@@ -56,20 +68,33 @@ class ApiController extends Controller {
 			];
 		}, $payloads));
 
+		$sportOptions = $this->sports->filterOptions($uid);
 		return new JSONResponse([
-			'configured' => $this->appConfig->isConfigured(),
+			'configured' => $this->userAuth->isConfigured($uid),
 			'connected' => $connection !== null,
 			'athleteName' => $connection?->getAthleteName() ?? '',
 			'timeZone' => $timezone->getName(),
+			'storedCount' => $connection === null ? 0 : $this->activities->countByUid($uid),
 			'stats' => $stats,
+			'mode' => count($modes) === 1 ? $modes[0] : 'all',
+			'modes' => $modes,
+			'sportOptions' => $sportOptions,
 			'activities' => $payloads,
 		]);
 	}
 
 	#[NoAdminRequired]
 	public function sync(): JSONResponse {
+		$range = trim((string)$this->request->getParam('range', SyncRange::MONTH));
+		if ($range === '') {
+			$range = SyncRange::MONTH;
+		}
+		if (!SyncRange::isValid($range)) {
+			return new JSONResponse(['error' => 'Unbekannter Zeitraum.'], Http::STATUS_BAD_REQUEST);
+		}
+
 		try {
-			$result = $this->sync->syncUser($this->uid());
+			$result = $this->sync->syncUser($this->uid(), $range);
 		} catch (AuthBrokerException) {
 			return new JSONResponse(['error' => 'Zugriff auf die activity tracking app abgelaufen. Bitte die Verbindung erneuern.'], Http::STATUS_BAD_GATEWAY);
 		} catch (TrackingApiException $e) {
@@ -82,6 +107,8 @@ class ApiController extends Controller {
 				return new JSONResponse(['error' => 'Noch nicht mit der activity tracking app verbunden.'], Http::STATUS_CONFLICT);
 			}
 			throw $e;
+		} catch (\Throwable $e) {
+			return new JSONResponse(['error' => 'Abgleich fehlgeschlagen: ' . $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
 		if ($result->busy) {
@@ -90,8 +117,10 @@ class ApiController extends Controller {
 
 		return new JSONResponse([
 			'created' => $result->created,
+			'updated' => $result->updated,
 			'skipped' => $result->skipped,
 			'rateLimited' => $result->rateLimited,
+			'range' => $range,
 		]);
 	}
 
@@ -127,15 +156,86 @@ class ApiController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	public function weekTracks(): JSONResponse {
+		$uid = $this->uid();
+		$timezone = $this->timeZones->getTimeZone(false, $uid);
+		$range = trim((string)$this->request->getParam('range', 'week'));
+		if ($range === 'week' || $range === '') {
+			[$from, $to] = WeekStats::window($timezone);
+			$range = 'week';
+		} elseif (SyncRange::isValid($range)) {
+			$from = SyncRange::after($range);
+			$to = time();
+		} else {
+			return new JSONResponse(['error' => 'Unbekannter Zeitraum.'], Http::STATUS_BAD_REQUEST);
+		}
+		$modes = $this->sports->resolveFilter($uid, $this->requestSportFilter());
+		$limit = (int)$this->request->getParam('limit', 12);
+		$offset = (int)$this->request->getParam('offset', 0);
+		if ($limit < 1) {
+			$limit = 12;
+		}
+		if ($limit > 40) {
+			$limit = 40;
+		}
+		if ($offset < 0) {
+			$offset = 0;
+		}
+		// Ohne GPX-Lesen: Kandidaten sammeln, dann nur die aktuelle Seite parsen.
+		$candidates = [];
+		foreach ($this->activities->findBetween($uid, $from, $to) as $row) {
+			if ($row->getFileId() === null) {
+				continue;
+			}
+			if (!SportGroup::matchesAny($modes, $row->getSportType())) {
+				continue;
+			}
+			$candidates[] = $row;
+			if (count($candidates) >= 120) {
+				break;
+			}
+		}
+		$total = count($candidates);
+		$slice = array_slice($candidates, $offset, $limit);
+		$tracks = [];
+		foreach ($slice as $row) {
+			try {
+				$content = $this->files->readById($uid, (int)$row->getFileId());
+			} catch (NotFoundException) {
+				continue;
+			}
+			$points = TrackPoints::fromGpx($content);
+			if ($points === []) {
+				continue;
+			}
+			$tracks[] = [
+				'activityId' => $row->getActivityId(),
+				'sport' => $row->getSportType(),
+				'points' => $points,
+			];
+		}
+		return new JSONResponse([
+			'range' => $range,
+			'mode' => count($modes) === 1 ? $modes[0] : 'all',
+			'modes' => $modes,
+			'modeLabels' => array_map(static fn (string $id): string => SportGroup::label($id), $modes),
+			'sportOptions' => $this->sports->filterOptions($uid),
+			'offset' => $offset,
+			'limit' => $limit,
+			'total' => $total,
+			'hasMore' => ($offset + $limit) < $total,
+			'tracks' => $tracks,
+		]);
+	}
+
+	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function weekZip(): DataDownloadResponse|JSONResponse {
 		if (!class_exists(\ZipArchive::class)) {
 			return new JSONResponse(['error' => 'ZIP ist auf diesem Server nicht verfügbar.'], Http::STATUS_NOT_IMPLEMENTED);
 		}
 		$uid = $this->uid();
-		$timezone = $this->timeZones->getTimeZone($uid);
-		[$from, $to] = WeekStats::window($timezone);
-		$rows = $this->activities->findBetween($uid, $from, $to);
+		$rows = $this->activities->findByUid($uid, 10000);
 		$tmp = tempnam(sys_get_temp_dir(), 'hot_tracks');
 		if ($tmp === false) {
 			return new JSONResponse(['error' => 'ZIP konnte nicht angelegt werden.'], Http::STATUS_INTERNAL_SERVER_ERROR);
@@ -162,14 +262,14 @@ class ApiController extends Controller {
 		$zip->close();
 		if ($added === 0) {
 			@unlink($tmp);
-			return new JSONResponse(['error' => 'Keine GPX-Dateien in den letzten 7 Tagen.'], Http::STATUS_NOT_FOUND);
+			return new JSONResponse(['error' => 'Keine GPX-Dateien gespeichert.'], Http::STATUS_NOT_FOUND);
 		}
 		$bytes = file_get_contents($tmp);
 		@unlink($tmp);
 		if ($bytes === false) {
 			return new JSONResponse(['error' => 'ZIP konnte nicht gelesen werden.'], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
-		return new DataDownloadResponse($bytes, 'hot-tracks-7-tage.zip', 'application/zip');
+		return new DataDownloadResponse($bytes, 'hot-tracks-alles.zip', 'application/zip');
 	}
 
 	private function uid(): string {
@@ -177,6 +277,17 @@ class ApiController extends Controller {
 			throw new \RuntimeException('Keine Anmeldung');
 		}
 		return $this->userId;
+	}
+
+	/**
+	 * Sportfilter aus Query: sport (bevorzugt) oder mode.
+	 */
+	private function requestSportFilter(): string {
+		$sport = trim((string)$this->request->getParam('sport', ''));
+		if ($sport !== '') {
+			return $sport;
+		}
+		return trim((string)$this->request->getParam('mode', 'all'));
 	}
 
 	/**
@@ -197,7 +308,7 @@ class ApiController extends Controller {
 	}
 
 	private function downloadName(Activity $activity): string {
-		$timezone = $this->timeZones->getTimeZone($activity->getUid());
+		$timezone = $this->timeZones->getTimeZone(false, $activity->getUid());
 		$start = (new \DateTimeImmutable('@' . $activity->getStartTime()))->setTimezone($timezone);
 		return ActivityPath::filename($start, $activity->getActivityId(), $activity->getName());
 	}
