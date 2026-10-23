@@ -32,7 +32,7 @@ class SyncService {
 	}
 
 	/**
-	 * @param string|null $range Monat, Jahr, 5y oder all – null = inkrementell (Hintergrundjob)
+	 * @param string|null $range month, year, 5y, or all – null means incremental (background job)
 	 */
 	public function syncUser(string $uid, ?string $range = null): SyncResult {
 		$connection = $this->connections->findByUid($uid);
@@ -40,7 +40,7 @@ class SyncService {
 			throw new \RuntimeException('Not connected');
 		}
 		if ($range !== null && !SyncRange::isValid($range)) {
-			throw new \InvalidArgumentException('Unbekannter Zeitraum');
+			throw new \InvalidArgumentException('Unknown time range');
 		}
 		if ($this->locked($uid)) {
 			return new SyncResult(0, 0, 0, false, true);
@@ -74,7 +74,7 @@ class SyncService {
 						continue;
 					}
 					$existing = $this->activities->findByActivityId($uid, $activityId);
-					// Vollständige Einträge überspringen; ohne GPX erneut holen (Upsert).
+					// Skip complete entries; fetch again when the GPX is missing (upsert).
 					if ($existing !== null && $existing->getFileId() !== null) {
 						$skipped++;
 						continue;
@@ -124,8 +124,8 @@ class SyncService {
 	}
 
 	/**
-	 * Eine Aktivität sofort nachziehen. Überspringt vollständige Einträge nicht,
-	 * damit eine Änderung an Name oder Strecke ankommt.
+	 * Refresh one activity immediately. Does not skip complete entries,
+	 * so a change to the name or the track is stored.
 	 *
 	 * @return 'created'|'updated'|'skipped'|'missing'
 	 */
@@ -229,7 +229,7 @@ class SyncService {
 		$entity->setName($name);
 		$entity->setSportType($sport);
 		$entity->setStartTime($startTime);
-		// Erst Nicht-Default setzen, sonst lässt Entity 0-Werte beim Speichern weg.
+		// Mark non-defaults first, otherwise the entity drops 0 values on save.
 		$entity->setDistance($distance + 1.0);
 		$entity->setDistance($distance);
 		$entity->setMovingTime($movingTime + 1);

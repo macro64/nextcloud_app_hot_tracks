@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\HotTracks\Service;
 
 /**
- * Ereignis, das der Auth-Dienst aus der activity tracking app weiterleitet.
+ * Event forwarded by the auth service from the activity tracking app.
  */
 final class WebhookEvent {
 	private function __construct(

@@ -17,7 +17,7 @@ class ActivityPath {
 		$slug = preg_replace('/[^a-z0-9]+/', '-', $value) ?? '';
 		$slug = trim($slug, '-');
 		if ($slug === '') {
-			$slug = 'aktivitaet';
+			$slug = 'activity';
 		}
 		return substr($slug, 0, 40);
 	}

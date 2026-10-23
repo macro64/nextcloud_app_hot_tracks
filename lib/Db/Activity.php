@@ -56,7 +56,7 @@ class Activity extends Entity {
 	}
 
 	/**
-	 * Felder mit Wert 0 werden sonst nicht als geändert erkannt und fehlen im INSERT.
+	 * Fields with value 0 are otherwise not marked changed and are missing from the INSERT.
 	 */
 	public function markRequiredForInsert(): void {
 		foreach ([

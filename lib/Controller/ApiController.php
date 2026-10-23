@@ -183,7 +183,7 @@ class ApiController extends Controller {
 		if ($offset < 0) {
 			$offset = 0;
 		}
-		// Ohne GPX-Lesen: Kandidaten sammeln, dann nur die aktuelle Seite parsen.
+		// Collect candidates without reading GPX, then parse only the current page.
 		$candidates = [];
 		foreach ($this->activities->findBetween($uid, $from, $to) as $row) {
 			if ($row->getFileId() === null) {
@@ -282,7 +282,7 @@ class ApiController extends Controller {
 	}
 
 	/**
-	 * Sportfilter aus Query: sport (bevorzugt) oder mode.
+	 * Sport filter from the query: sport (preferred) or mode.
 	 */
 	private function requestSportFilter(): string {
 		$sport = trim((string)$this->request->getParam('sport', ''));

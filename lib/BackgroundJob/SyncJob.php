@@ -27,7 +27,7 @@ class SyncJob extends TimedJob {
 			try {
 				$result = $this->sync->syncUser($uid);
 			} catch (\Throwable $e) {
-				$this->logger->warning('Abgleich mit der activity tracking app fehlgeschlagen', [
+				$this->logger->warning('Sync with the activity tracking app failed', [
 					'app' => 'hot_tracks',
 					'uid' => $uid,
 					'exception' => $e,
@@ -35,7 +35,7 @@ class SyncJob extends TimedJob {
 				continue;
 			}
 			if ($result->rateLimited) {
-				$this->logger->info('Limit der activity tracking app erreicht, weiterer Abgleich wartet auf den nächsten Lauf', [
+				$this->logger->info('Activity tracking app rate limit reached, further sync waits for the next run', [
 					'app' => 'hot_tracks',
 				]);
 				return;

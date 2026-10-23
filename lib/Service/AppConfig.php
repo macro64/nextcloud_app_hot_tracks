@@ -23,7 +23,7 @@ class AppConfig {
 	public function authServiceUrl(): string {
 		$url = trim($this->config->getAppValue(Application::APP_ID, 'auth_service_url', ''));
 		if ($url === '') {
-			// Anzeige-Default in der Admin-UI; isConfigured() verlangt trotzdem ein Secret.
+			// Display default in the admin UI; isConfigured() still requires a secret.
 			$url = self::DEFAULT_AUTH_URL;
 		}
 		return rtrim($url, '/');
@@ -40,7 +40,7 @@ class AppConfig {
 			return '';
 		}
 		$plain = $this->revealSecret($stored);
-		// Legacy: Klartext aus älteren Installationen beim Lesen nachziehen.
+		// Legacy: migrate plaintext from older installs on read.
 		if ($plain !== '' && $plain === $stored) {
 			$this->persistSecret('auth_client_secret', $plain);
 		}
@@ -52,7 +52,7 @@ class AppConfig {
 	}
 
 	/**
-	 * Geheimer Pfad-Anteil der Webhook-URL. Wird beim ersten Abruf erzeugt.
+	 * Secret path segment of the webhook URL. Created on first read.
 	 */
 	public function webhookToken(): string {
 		$stored = $this->config->getAppValue(Application::APP_ID, 'webhook_token', '');
@@ -109,7 +109,7 @@ class AppConfig {
 	}
 
 	/**
-	 * Entschlüsselt gespeicherte Secrets; Klartext aus älteren Versionen bleibt lesbar.
+	 * Decrypts stored secrets. Plaintext from older versions stays readable.
 	 */
 	private function revealSecret(string $stored): string {
 		try {

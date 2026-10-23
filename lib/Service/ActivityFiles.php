@@ -28,7 +28,7 @@ class ActivityFiles {
 		try {
 			$node = $folder->get($filename);
 			if (!$node instanceof File) {
-				throw new \RuntimeException('Der GPX-Pfad ist keine Datei.');
+				throw new \RuntimeException('The GPX path is not a file.');
 			}
 		} catch (NotFoundException) {
 			$node = $folder->newFile($filename);
@@ -36,7 +36,7 @@ class ActivityFiles {
 		$node->putContent($gpx);
 		$id = $node->getId();
 		if ($id === null) {
-			throw new \RuntimeException('Die GPX-Datei hat keine ID.');
+			throw new \RuntimeException('The GPX file has no id.');
 		}
 		$this->writeConfiguredCopy($uid, $filename, $gpx);
 		return (int)$id;
@@ -45,7 +45,7 @@ class ActivityFiles {
 	public function ensureFolder(string $uid, string $relative): void {
 		$folder = $this->resolve($uid, $relative, true);
 		if (!$folder instanceof Folder) {
-			throw new \RuntimeException('Der Ordner konnte nicht angelegt werden.');
+			throw new \RuntimeException('The folder could not be created.');
 		}
 	}
 
@@ -53,18 +53,18 @@ class ActivityFiles {
 		$this->assertFilename($filename);
 		$relative = $this->copies->path($uid);
 		if ($relative === '') {
-			throw new \RuntimeException('Kein zusätzlicher Ordner.');
+			throw new \RuntimeException('No extra folder.');
 		}
 		$folder = $this->resolve($uid, $relative, true);
 		if (!$folder instanceof Folder) {
-			throw new \RuntimeException('Der Ordner konnte nicht angelegt werden.');
+			throw new \RuntimeException('The folder could not be created.');
 		}
 		$this->writeInto($folder, $filename, $gpx);
 	}
 
 	/**
-	 * Kopiert eine schon gespeicherte GPX-Datei in den zusätzlichen Ordner,
-	 * ohne den Dateiinhalt in PHP zu halten.
+	 * Copies an already stored GPX file into the extra folder
+	 * without holding the file contents in PHP.
 	 *
 	 * @return 'copied'|'exists'|'missing'
 	 */
@@ -87,7 +87,7 @@ class ActivityFiles {
 		$this->assertFilename($filename);
 		$folder = $this->resolve($uid, $relative, true);
 		if (!$folder instanceof Folder) {
-			throw new \RuntimeException('Der Ordner konnte nicht angelegt werden.');
+			throw new \RuntimeException('The folder could not be created.');
 		}
 		try {
 			$existing = $folder->get($filename);
@@ -128,7 +128,7 @@ class ActivityFiles {
 				return $node->getContent();
 			}
 		}
-		throw new NotFoundException('GPX nicht gefunden');
+		throw new NotFoundException('GPX not found');
 	}
 
 	private function writeConfiguredCopy(string $uid, string $filename, string $gpx): void {
@@ -138,7 +138,7 @@ class ActivityFiles {
 		try {
 			$this->writeCopy($uid, $filename, $gpx);
 		} catch (\Throwable $e) {
-			$this->logger->warning('Zusätzliche GPX-Kopie fehlgeschlagen', [
+			$this->logger->warning('Extra GPX copy failed', [
 				'app' => 'hot_tracks',
 				'exception' => $e,
 			]);
@@ -162,7 +162,7 @@ class ActivityFiles {
 			}
 		} catch (NotFoundException) {
 		} catch (\Throwable $e) {
-			$this->logger->warning('Zusätzliche GPX-Kopie konnte nicht gelöscht werden', [
+			$this->logger->warning('Could not delete the extra GPX copy', [
 				'app' => 'hot_tracks',
 				'exception' => $e,
 			]);
@@ -173,7 +173,7 @@ class ActivityFiles {
 		try {
 			$node = $folder->get($filename);
 			if (!$node instanceof File) {
-				throw new \RuntimeException('Der GPX-Pfad ist keine Datei.');
+				throw new \RuntimeException('The GPX path is not a file.');
 			}
 		} catch (NotFoundException) {
 			$node = $folder->newFile($filename);
@@ -197,7 +197,7 @@ class ActivityFiles {
 				continue;
 			}
 			if (!$node instanceof Folder) {
-				throw new \RuntimeException('„' . $segment . '“ ist kein Ordner.');
+				throw new \RuntimeException('"' . $segment . '" is not a folder.');
 			}
 			$folder = $node;
 		}
@@ -212,7 +212,7 @@ class ActivityFiles {
 			|| str_contains($filename, '/')
 			|| str_contains($filename, '\\')
 		) {
-			throw new \RuntimeException('Ungültiger Dateiname.');
+			throw new \RuntimeException('Invalid file name.');
 		}
 	}
 
@@ -223,7 +223,7 @@ class ActivityFiles {
 			return $parent->newFolder($name);
 		}
 		if (!$node instanceof Folder) {
-			throw new \RuntimeException('„' . $name . '“ ist kein Ordner.');
+			throw new \RuntimeException('"' . $name . '" is not a folder.');
 		}
 		return $node;
 	}
