@@ -37,7 +37,7 @@ class SyncService {
 	public function syncUser(string $uid, ?string $range = null): SyncResult {
 		$connection = $this->connections->findByUid($uid);
 		if ($connection === null) {
-			throw new \RuntimeException('Nicht verbunden');
+			throw new \RuntimeException('Not connected');
 		}
 		if ($range !== null && !SyncRange::isValid($range)) {
 			throw new \InvalidArgumentException('Unbekannter Zeitraum');
@@ -132,7 +132,7 @@ class SyncService {
 	public function pullActivity(string $uid, int $activityId): string {
 		$connection = $this->connections->findByUid($uid);
 		if ($connection === null) {
-			throw new \RuntimeException('Nicht verbunden');
+			throw new \RuntimeException('Not connected');
 		}
 		$token = $this->tokens->accessToken($connection);
 		$existing = $this->activities->findByActivityId($uid, $activityId);
@@ -195,7 +195,7 @@ class SyncService {
 	private function store(string $uid, int $activityId, array $detail, array $streams, ?Activity $existing): string {
 		$name = trim((string)($detail['name'] ?? ''));
 		if ($name === '') {
-			$name = 'Aktivität ' . $activityId;
+			$name = 'Activity ' . $activityId;
 		}
 		$name = mb_substr($name, 0, 512);
 		$sport = trim((string)($detail['sport_type'] ?? $detail['type'] ?? 'Activity'));

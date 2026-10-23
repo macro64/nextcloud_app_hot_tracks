@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import axios from '@nextcloud/axios'
+import { n, t } from '@nextcloud/l10n'
 import { generateUrl, imagePath } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import ActivityDetail from './components/ActivityDetail.vue'
@@ -13,10 +14,10 @@ const LIST_MODE_KEY = 'hot_tracks_list_mode'
 const EMPTY_OPTIONS = Object.freeze([])
 
 const syncRanges = [
-	{ id: 'month', label: 'Letzter Monat' },
-	{ id: 'year', label: 'Letztes Jahr' },
-	{ id: '5y', label: '5 Jahre' },
-	{ id: 'all', label: 'Alles' },
+	{ id: 'month', label: t('hot_tracks', 'Last month') },
+	{ id: 'year', label: t('hot_tracks', 'Last year') },
+	{ id: '5y', label: t('hot_tracks', '5 years') },
+	{ id: 'all', label: t('hot_tracks', 'All') },
 ]
 
 function readStored(key, fallback, allowed) {
@@ -47,7 +48,7 @@ const notice = ref('')
 const overview = ref(null)
 const selectedId = ref(null)
 
-const syncRangeLabel = computed(() => syncRanges.find((row) => row.id === syncRange.value)?.label ?? 'Zeitraum')
+const syncRangeLabel = computed(() => syncRanges.find((row) => row.id === syncRange.value)?.label ?? t('hot_tracks', 'Time range'))
 const sportOptions = computed(() => overview.value?.sportOptions ?? EMPTY_OPTIONS)
 
 watch(syncRange, (value) => {
@@ -63,10 +64,10 @@ function setListMode(mode) {
 
 const initialError = new URLSearchParams(window.location.search).get('error')
 if (initialError === 'config') {
-	error.value = 'Bitte zuerst unter Einstellungen → Hot Tracks die Strava-API-Daten eintragen.'
+	error.value = t('hot_tracks', 'Please enter your Strava API credentials under Settings → Hot Tracks first.')
 }
 if (initialError === 'oauth') {
-	error.value = 'Die Verbindung mit Strava ist fehlgeschlagen. Bitte erneut versuchen.'
+	error.value = t('hot_tracks', 'Connecting to Strava failed. Please try again.')
 }
 
 const settingsUrl = '/settings/user/hot_tracks'
@@ -94,7 +95,7 @@ async function load({ quiet = false } = {}) {
 			writeStored(LIST_MODE_KEY, 'all')
 		}
 	} catch (loadError) {
-		error.value = 'Die Übersicht konnte nicht geladen werden.'
+		error.value = t('hot_tracks', 'Could not load the overview.')
 	} finally {
 		if (!quiet) loading.value = false
 	}
@@ -113,24 +114,24 @@ async function syncNow() {
 		const label = syncRangeLabel.value.toLowerCase()
 		const parts = []
 		if (created > 0) {
-			parts.push(created === 1 ? '1 neu' : `${created} neu`)
+			parts.push(n('hot_tracks', '%n new', '%n new', created))
 		}
 		if (updated > 0) {
-			parts.push(updated === 1 ? '1 nachgezogen' : `${updated} nachgezogen`)
+			parts.push(n('hot_tracks', '%n updated', '%n updated', updated))
 		}
 		if (response.data.rateLimited) {
 			notice.value = parts.length
-				? `Limit der activity tracking app erreicht. ${parts.join(', ')} (${label}) – denselben Zeitraum erneut wählen, sobald das Limit frei ist.`
-				: `Limit der activity tracking app erreicht. Bitte denselben Zeitraum (${label}) später erneut abgleichen.`
+				? t('hot_tracks', 'Activity tracking app rate limit reached. {parts} ({range}) – choose the same range again once the limit clears.', { parts: parts.join(', '), range: label })
+				: t('hot_tracks', 'Activity tracking app rate limit reached. Please sync the same range ({range}) again later.', { range: label })
 		} else if (parts.length === 0) {
-			notice.value = `Keine neuen oder unvollständigen Aktivitäten für ${label}.`
+			notice.value = t('hot_tracks', 'No new or incomplete activities for {range}.', { range: label })
 		} else {
-			notice.value = `${parts.join(', ')} gespeichert (${label}).`
+			notice.value = t('hot_tracks', '{parts} saved ({range}).', { parts: parts.join(', '), range: label })
 		}
 		await load({ quiet: true })
 		heatmapRevision.value += 1
 	} catch (syncError) {
-		error.value = syncError?.response?.data?.error || 'Abgleich fehlgeschlagen.'
+		error.value = syncError?.response?.data?.error || t('hot_tracks', 'Sync failed.')
 	} finally {
 		syncing.value = false
 	}
@@ -143,40 +144,39 @@ onMounted(load)
 	<div class="hot-tracks-app">
 		<header class="hot-tracks-top">
 			<div>
-				<h2>Hot Tracks</h2>
+				<h2>{{ t('hot_tracks', 'Hot Tracks') }}</h2>
 			</div>
 			<div v-if="overview?.connected && !selected" class="hot-tracks-actions">
 				<label class="hot-tracks-range">
-					<span class="hot-tracks-visually-hidden">Zeitraum</span>
+					<span class="hot-tracks-visually-hidden">{{ t('hot_tracks', 'Time range') }}</span>
 					<select v-model="syncRange" :disabled="syncing">
 						<option v-for="range in syncRanges" :key="range.id" :value="range.id">{{ range.label }}</option>
 					</select>
 				</label>
-				<NcButton :disabled="syncing" @click="syncNow">{{ syncing ? 'Gleich ab…' : 'Abgleichen' }}</NcButton>
-				<NcButton v-if="gpxCount" :href="zipUrl">Alles als ZIP</NcButton>
+				<NcButton :disabled="syncing" @click="syncNow">{{ syncing ? t('hot_tracks', 'Syncing …') : t('hot_tracks', 'Sync') }}</NcButton>
+				<NcButton v-if="gpxCount" :href="zipUrl">{{ t('hot_tracks', 'Download all as ZIP') }}</NcButton>
 			</div>
 		</header>
 
 		<p v-if="error" class="hot-tracks-error">{{ error }}</p>
 		<p v-if="notice" class="hot-tracks-note">{{ notice }}</p>
-		<p v-if="loading" class="hot-tracks-empty">Laden…</p>
+		<p v-if="loading" class="hot-tracks-empty">{{ t('hot_tracks', 'Loading …') }}</p>
 
 		<template v-else-if="overview && !overview.configured">
 			<p class="hot-tracks-empty">
-				Unter Einstellungen → Hot Tracks die Strava-Client-ID und das Secret eintragen
-				(API-Zugang unter strava.com/settings/api). Danach hier verbinden.
+				{{ t('hot_tracks', 'Enter the Strava client ID and secret under Settings → Hot Tracks (API access at strava.com/settings/api). Then connect here.') }}
 			</p>
-			<NcButton type="primary" :href="settingsUrl">Zu den Einstellungen</NcButton>
+			<NcButton type="primary" :href="settingsUrl">{{ t('hot_tracks', 'Go to settings') }}</NcButton>
 		</template>
 
 		<template v-else-if="overview && !overview.connected">
-			<p class="hot-tracks-empty">Noch nicht verbunden. Die Aktivitäten landen nur in deinem Profil, im Ordner Hot Tracks.</p>
+			<p class="hot-tracks-empty">{{ t('hot_tracks', 'Not connected yet. Activities are stored only in your profile, in the Hot Tracks folder.') }}</p>
 			<a class="hot-tracks-strava-connect" :href="connectUrl">
 				<img
 					:src="connectButtonSrc"
 					width="237"
 					height="48"
-					alt="Connect with Strava"
+					:alt="t('hot_tracks', 'Connect with Strava')"
 				>
 			</a>
 		</template>
@@ -191,16 +191,16 @@ onMounted(load)
 		<div v-else-if="overview" class="hot-tracks-board">
 			<div>
 				<p v-if="overview.athleteName" class="hot-tracks-muted">
-					Verbunden als {{ overview.athleteName }}
+					{{ t('hot_tracks', 'Connected as {name}', { name: overview.athleteName }) }}
 					<template v-if="overview.storedCount">
-						· {{ overview.storedCount === 1 ? '1 Aktivität gespeichert' : `${overview.storedCount} Aktivitäten gespeichert` }}
+						· {{ n('hot_tracks', '%n activity stored', '%n activities stored', overview.storedCount) }}
 					</template>
 				</p>
-				<section class="hot-tracks-stats" aria-label="Summen der angezeigten Aktivitäten">
-					<div class="hot-tracks-stat"><span>Aktivitäten</span><strong>{{ overview.stats.count }}</strong></div>
-					<div class="hot-tracks-stat"><span>Distanz</span><strong>{{ formatDistance(overview.stats.distance) }}</strong></div>
-					<div class="hot-tracks-stat"><span>Bewegung</span><strong>{{ formatDuration(overview.stats.movingTime) }}</strong></div>
-					<div class="hot-tracks-stat"><span>Höhe</span><strong>{{ formatElevation(overview.stats.elevation) }}</strong></div>
+				<section class="hot-tracks-stats" :aria-label="t('hot_tracks', 'Totals for the displayed activities')">
+					<div class="hot-tracks-stat"><span>{{ t('hot_tracks', 'Activities') }}</span><strong>{{ overview.stats.count }}</strong></div>
+					<div class="hot-tracks-stat"><span>{{ t('hot_tracks', 'Distance') }}</span><strong>{{ formatDistance(overview.stats.distance) }}</strong></div>
+					<div class="hot-tracks-stat"><span>{{ t('hot_tracks', 'Moving') }}</span><strong>{{ formatDuration(overview.stats.movingTime) }}</strong></div>
+					<div class="hot-tracks-stat"><span>{{ t('hot_tracks', 'Elevation') }}</span><strong>{{ formatElevation(overview.stats.elevation) }}</strong></div>
 				</section>
 				<ul v-if="overview.stats.bySport.length" class="hot-tracks-sports">
 					<li v-for="group in overview.stats.bySport" :key="group.sport">
@@ -208,21 +208,24 @@ onMounted(load)
 					</li>
 				</ul>
 				<div class="hot-tracks-list-head">
-					<p class="hot-tracks-kicker hot-tracks-list-title">Alle Aktivitäten</p>
+					<p class="hot-tracks-kicker hot-tracks-list-title">{{ t('hot_tracks', 'All activities') }}</p>
 					<SportFilter
 						:value="listMode"
 						:options="sportOptions"
-						label="Sportart filtern"
+						:label="t('hot_tracks', 'Filter by sport')"
 						@input="setListMode"
 					/>
 				</div>
-				<p v-if="overview.activities.length === 0" class="hot-tracks-empty">
-					Noch nichts für diesen Filter.
-					<a :href="settingsUrl">Sportarten in den Einstellungen</a>
-					wählen und oben abgleichen.
-				</p>
+				<p
+					v-if="overview.activities.length === 0"
+					class="hot-tracks-empty"
+					v-html="t('hot_tracks', 'Nothing for this filter yet. {linkStart}Choose sports in settings{linkEnd} and sync above.', {
+						linkStart: `<a href=\"${settingsUrl}\">`,
+						linkEnd: '</a>',
+					}, undefined, { escape: false })"
+				/>
 				<p v-else-if="overview.storedCount > overview.activities.length" class="hot-tracks-muted">
-					Die letzten {{ overview.activities.length }} von {{ overview.storedCount }} (gefiltert).
+					{{ t('hot_tracks', 'Showing the latest {shown} of {total} (filtered).', { shown: overview.activities.length, total: overview.storedCount }) }}
 				</p>
 				<div v-if="overview.activities.length" class="hot-tracks-list">
 					<button

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import axios from '@nextcloud/axios'
+import { getCanonicalLocale, t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -27,9 +28,15 @@ const profile = computed(() => elevationLine(points.value))
 const elevationSpan = computed(() => {
 	const values = points.value.map((point) => point.ele).filter((value) => Number.isFinite(value))
 	if (values.length < 2) return ''
+	let locale
+	try {
+		locale = getCanonicalLocale() || undefined
+	} catch (error) {
+		locale = undefined
+	}
 	const min = Math.round(Math.min(...values))
 	const max = Math.round(Math.max(...values))
-	return `${min.toLocaleString('de-DE')}–${max.toLocaleString('de-DE')} m`
+	return `${min.toLocaleString(locale)}–${max.toLocaleString(locale)} m`
 })
 
 function trackColor() {
@@ -71,12 +78,12 @@ async function loadGpx() {
 		const xml = typeof response.data === 'string' ? response.data : ''
 		points.value = parseGpx(xml)
 		if (points.value.length === 0) {
-			gpxError.value = 'Die GPX-Datei enthält keine Punkte.'
+			gpxError.value = t('hot_tracks', 'The GPX file contains no points.')
 			return
 		}
 		draw()
 	} catch (error) {
-		gpxError.value = 'Die GPX-Datei konnte nicht gelesen werden.'
+		gpxError.value = t('hot_tracks', 'Could not read the GPX file.')
 	}
 }
 
@@ -105,33 +112,33 @@ onBeforeUnmount(resetMap)
 				<p class="hot-tracks-muted">{{ formatWhen(activity.startTime, timeZone) }}</p>
 			</div>
 			<div class="hot-tracks-actions">
-				<NcButton @click="emit('back')">Zurück</NcButton>
+				<NcButton @click="emit('back')">{{ t('hot_tracks', 'Back') }}</NcButton>
 				<a
 					v-if="routerUrl"
 					class="button"
 					:href="routerUrl"
 					target="_blank"
 					rel="noreferrer noopener"
-				>Mit Bikerouter öffnen</a>
-				<NcButton v-if="activity.hasGpx" type="primary" :href="gpxUrl">GPX herunterladen</NcButton>
+				>{{ t('hot_tracks', 'Open with Bikerouter') }}</a>
+				<NcButton v-if="activity.hasGpx" type="primary" :href="gpxUrl">{{ t('hot_tracks', 'Download GPX') }}</NcButton>
 			</div>
 		</div>
 
 		<section class="hot-tracks-stats">
-			<div class="hot-tracks-stat"><span>Distanz</span><strong>{{ formatDistance(activity.distance) }}</strong></div>
-			<div class="hot-tracks-stat"><span>Bewegung</span><strong>{{ formatDuration(activity.movingTime) }}</strong></div>
-			<div class="hot-tracks-stat"><span>Gesamt</span><strong>{{ formatDuration(activity.elapsedTime) }}</strong></div>
-			<div class="hot-tracks-stat"><span>Höhe</span><strong>{{ formatElevation(activity.elevation) }}</strong></div>
+			<div class="hot-tracks-stat"><span>{{ t('hot_tracks', 'Distance') }}</span><strong>{{ formatDistance(activity.distance) }}</strong></div>
+			<div class="hot-tracks-stat"><span>{{ t('hot_tracks', 'Moving') }}</span><strong>{{ formatDuration(activity.movingTime) }}</strong></div>
+			<div class="hot-tracks-stat"><span>{{ t('hot_tracks', 'Elapsed') }}</span><strong>{{ formatDuration(activity.elapsedTime) }}</strong></div>
+			<div class="hot-tracks-stat"><span>{{ t('hot_tracks', 'Elevation') }}</span><strong>{{ formatElevation(activity.elevation) }}</strong></div>
 		</section>
-		<p class="hot-tracks-muted">Tempo: {{ tempoLabel(activity) }}</p>
+		<p class="hot-tracks-muted">{{ t('hot_tracks', 'Pace:') }} {{ tempoLabel(activity) }}</p>
 
 		<div v-if="activity.hasGpx && !gpxError" ref="mapEl" class="hot-tracks-map" />
 		<p v-else-if="gpxError" class="hot-tracks-error">{{ gpxError }}</p>
-		<p v-else class="hot-tracks-empty">Keine GPS-Spur. Die Zusammenfassung steht trotzdem zur Verfügung.</p>
+		<p v-else class="hot-tracks-empty">{{ t('hot_tracks', 'No GPS track. The summary is still available.') }}</p>
 
 		<div v-if="profile" class="hot-tracks-profile">
-			<p class="hot-tracks-muted">Höhe entlang der Spur<span v-if="elevationSpan"> · {{ elevationSpan }}</span></p>
-			<svg viewBox="0 0 640 72" role="img" aria-label="Höhenprofil">
+			<p class="hot-tracks-muted">{{ t('hot_tracks', 'Elevation along the track') }}<span v-if="elevationSpan"> · {{ elevationSpan }}</span></p>
+			<svg viewBox="0 0 640 72" role="img" :aria-label="t('hot_tracks', 'Elevation profile')">
 				<polyline :points="profile" />
 			</svg>
 		</div>

@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace OCA\HotTracks\Service;
 
 /**
- * Prüft Auth-Proxy-URLs: HTTPS (oder lokales HTTP) und keine privaten IP-Literale.
+ * Validates auth-proxy URLs: HTTPS (or local HTTP) and no private IP literals.
  */
 final class AuthServiceUrl {
 	/**
-	 * @return string Fehlermeldung oder leer bei Erfolg
+	 * @return string English error message, or empty on success
 	 */
 	public static function validate(string $url): string {
 		$url = trim($url);
 		if ($url === '') {
-			return 'Die Auth-URL fehlt.';
+			return 'The auth URL is missing.';
 		}
 
 		$parts = parse_url($url);
 		if ($parts === false || !isset($parts['scheme'], $parts['host'])) {
-			return 'Die Auth-URL ist ungültig.';
+			return 'The auth URL is invalid.';
 		}
 
 		$scheme = strtolower((string)$parts['scheme']);
@@ -28,15 +28,15 @@ final class AuthServiceUrl {
 			&& ($host === 'localhost' || $host === '127.0.0.1');
 
 		if ($scheme !== 'https' && !$isLocalHttp) {
-			return 'Die Auth-URL muss HTTPS sein.';
+			return 'The auth URL must use HTTPS.';
 		}
 
 		if (isset($parts['user']) || isset($parts['pass'])) {
-			return 'Die Auth-URL darf keine Zugangsdaten enthalten.';
+			return 'The auth URL must not contain credentials.';
 		}
 
 		if (self::isBlockedHost($host)) {
-			return 'Die Auth-URL darf nicht auf private oder lokale Netze zeigen.';
+			return 'The auth URL must not point to private or local networks.';
 		}
 
 		return '';
@@ -48,7 +48,7 @@ final class AuthServiceUrl {
 		}
 
 		if (filter_var($host, FILTER_VALIDATE_IP) === false) {
-			// Hostnamen (inkl. DNS) nicht auflösen — nur IP-Literale sperren.
+			// Do not resolve hostnames — only block IP literals.
 			return false;
 		}
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\HotTracks\Service;
 
 /**
- * Relativer Pfad im Dateibereich einer Person. Leer heißt: keine zusätzliche Kopie.
+ * Relative path in a person's files. Empty means no extra copy.
  */
 final class GpxCopyPath {
 	/**
@@ -28,23 +28,23 @@ final class GpxCopyPath {
 			return ['path' => '', 'error' => ''];
 		}
 		if (count($parts) > 20) {
-			return ['path' => '', 'error' => 'Der Pfad ist zu tief verschachtelt.'];
+			return ['path' => '', 'error' => 'The path is nested too deeply.'];
 		}
 
 		foreach ($parts as $part) {
 			if ($part === '.' || $part === '..') {
-				return ['path' => '', 'error' => 'Der Ordner darf nicht aus dem eigenen Dateibereich herausführen.'];
+				return ['path' => '', 'error' => 'The folder must stay inside your own files.'];
 			}
 			if (preg_match('/[\x00-\x1f:*?"<>|]/', $part) === 1) {
-				return ['path' => '', 'error' => 'Der Ordner enthält ein Zeichen, das in Dateinamen nicht erlaubt ist.'];
+				return ['path' => '', 'error' => 'The folder contains a character that is not allowed in file names.'];
 			}
 			if (strlen($part) > 250) {
-				return ['path' => '', 'error' => 'Ein Ordnername ist zu lang.'];
+				return ['path' => '', 'error' => 'A folder name is too long.'];
 			}
 		}
 
 		if (mb_strtolower($parts[0]) === 'hot tracks') {
-			return ['path' => '', 'error' => 'Der Ordner Hot Tracks ist bereits der Ablageort. Wähle einen anderen Ordner.'];
+			return ['path' => '', 'error' => 'Hot Tracks is already the storage folder. Choose a different folder.'];
 		}
 
 		return ['path' => implode('/', $parts), 'error' => ''];

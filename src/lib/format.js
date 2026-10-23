@@ -1,59 +1,61 @@
+import { getCanonicalLocale, t } from '@nextcloud/l10n'
+
 export const SPORT_LABELS = {
-	AlpineSki: 'Ski Alpin',
-	BackcountrySki: 'Skitour',
+	AlpineSki: 'Alpine ski',
+	BackcountrySki: 'Backcountry ski',
 	Badminton: 'Badminton',
 	Basketball: 'Basketball',
-	Canoeing: 'Kanu',
+	Canoeing: 'Canoeing',
 	Cricket: 'Cricket',
 	Crossfit: 'CrossFit',
-	Dance: 'Tanz',
-	EBikeRide: 'E-Bike',
-	Elliptical: 'Crosstrainer',
-	EMountainBikeRide: 'E-Mountainbike',
+	Dance: 'Dance',
+	EBikeRide: 'E-bike',
+	Elliptical: 'Elliptical',
+	EMountainBikeRide: 'E-mountain bike',
 	Golf: 'Golf',
 	GravelRide: 'Gravel',
-	Handcycle: 'Handbike',
+	Handcycle: 'Handcycle',
 	HighIntensityIntervalTraining: 'HIIT',
-	Hike: 'Wandern',
-	IceSkate: 'Eislaufen',
-	InlineSkate: 'Inlineskate',
-	Kayaking: 'Kajak',
-	Kitesurf: 'Kitesurfen',
-	MountainBikeRide: 'Mountainbike',
-	NordicSki: 'Langlauf',
+	Hike: 'Hike',
+	IceSkate: 'Ice skate',
+	InlineSkate: 'Inline skate',
+	Kayaking: 'Kayaking',
+	Kitesurf: 'Kitesurf',
+	MountainBikeRide: 'Mountain bike',
+	NordicSki: 'Nordic ski',
 	Padel: 'Padel',
-	PhysicalTherapy: 'Physiotherapie',
+	PhysicalTherapy: 'Physical therapy',
 	Pickleball: 'Pickleball',
 	Pilates: 'Pilates',
 	Racquetball: 'Racquetball',
-	Ride: 'Radfahren',
-	RockClimbing: 'Klettern',
-	RollerSki: 'Rollski',
-	Rowing: 'Rudern',
-	Run: 'Laufen',
-	Sail: 'Segeln',
+	Ride: 'Ride',
+	RockClimbing: 'Rock climbing',
+	RollerSki: 'Roller ski',
+	Rowing: 'Rowing',
+	Run: 'Run',
+	Sail: 'Sail',
 	Skateboard: 'Skateboard',
 	Snowboard: 'Snowboard',
-	Snowshoe: 'Schneeschuh',
-	Soccer: 'Fußball',
+	Snowshoe: 'Snowshoe',
+	Soccer: 'Soccer',
 	Squash: 'Squash',
-	StairStepper: 'Stepper',
+	StairStepper: 'Stair stepper',
 	StandUpPaddling: 'SUP',
-	Surfing: 'Surfen',
-	Swim: 'Schwimmen',
-	TableTennis: 'Tischtennis',
+	Surfing: 'Surfing',
+	Swim: 'Swim',
+	TableTennis: 'Table tennis',
 	Tennis: 'Tennis',
-	TrailRun: 'Trailrun',
-	Velomobile: 'Velomobil',
-	VirtualRide: 'Radfahren (virtuell)',
-	VirtualRow: 'Rudern (virtuell)',
-	VirtualRun: 'Laufen (virtuell)',
+	TrailRun: 'Trail run',
+	Velomobile: 'Velomobile',
+	VirtualRide: 'Virtual ride',
+	VirtualRow: 'Virtual row',
+	VirtualRun: 'Virtual run',
 	Volleyball: 'Volleyball',
-	Walk: 'Gehen',
-	WeightTraining: 'Krafttraining',
-	Wheelchair: 'Rollstuhl',
-	Windsurf: 'Windsurfen',
-	Workout: 'Training',
+	Walk: 'Walk',
+	WeightTraining: 'Weight training',
+	Wheelchair: 'Wheelchair',
+	Windsurf: 'Windsurf',
+	Workout: 'Workout',
 	Yoga: 'Yoga',
 }
 
@@ -66,8 +68,20 @@ const PACE_SPORTS = new Set([
 	'Snowshoe',
 ])
 
+function locale() {
+	try {
+		return getCanonicalLocale() || undefined
+	} catch (error) {
+		return undefined
+	}
+}
+
 export function sportLabel(sport) {
-	return SPORT_LABELS[sport] || sport || 'Aktivität'
+	const key = SPORT_LABELS[sport]
+	if (key) {
+		return t('hot_tracks', key)
+	}
+	return sport || t('hot_tracks', 'Activity')
 }
 
 export function usesPace(sport) {
@@ -78,7 +92,7 @@ export function formatDistance(meters) {
 	const km = Number(meters) / 1000
 	if (!Number.isFinite(km)) return '–'
 	const digits = km >= 10 ? 1 : 2
-	return `${km.toLocaleString('de-DE', { minimumFractionDigits: digits, maximumFractionDigits: digits })} km`
+	return `${km.toLocaleString(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits })} km`
 }
 
 export function formatDuration(seconds) {
@@ -94,12 +108,12 @@ export function formatDuration(seconds) {
 
 export function formatElevation(meters) {
 	const value = Math.round(Number(meters) || 0)
-	return `${value.toLocaleString('de-DE')} m`
+	return `${value.toLocaleString(locale())} m`
 }
 
 export function formatWhen(unixSeconds, timeZone) {
 	const date = new Date(Number(unixSeconds) * 1000)
-	return new Intl.DateTimeFormat('de-DE', {
+	return new Intl.DateTimeFormat(locale(), {
 		timeZone: timeZone || undefined,
 		weekday: 'short',
 		day: 'numeric',
@@ -124,5 +138,5 @@ export function tempoLabel(activity) {
 		return `${minutes}:${String(seconds).padStart(2, '0')} /km`
 	}
 	const kmh = (distance / 1000) / (moving / 3600)
-	return `${kmh.toLocaleString('de-DE', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} km/h`
+	return `${kmh.toLocaleString(locale(), { maximumFractionDigits: 1, minimumFractionDigits: 1 })} km/h`
 }

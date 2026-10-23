@@ -66,12 +66,15 @@ final class SportGroup {
 		return in_array($mode, self::ALL_IDS, true);
 	}
 
+	/**
+	 * English source label (pass through IL10N::t at the call site).
+	 */
 	public static function label(string $mode): string {
 		return match ($mode) {
-			self::RUN => 'Laufen',
-			self::RIDE => 'Rad',
+			self::RUN => 'Run',
+			self::RIDE => 'Ride',
 			self::SKI => 'Ski',
-			self::WATER => 'Wasser',
+			self::WATER => 'Water',
 			default => $mode,
 		};
 	}

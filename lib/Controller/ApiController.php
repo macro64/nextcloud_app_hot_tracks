@@ -26,6 +26,7 @@ use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\Files\NotFoundException;
 use OCP\IDateTimeZone;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class ApiController extends Controller {
@@ -40,6 +41,7 @@ class ApiController extends Controller {
 		private SyncService $sync,
 		private SportPreferences $sports,
 		private IDateTimeZone $timeZones,
+		private IL10N $l,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -90,29 +92,29 @@ class ApiController extends Controller {
 			$range = SyncRange::MONTH;
 		}
 		if (!SyncRange::isValid($range)) {
-			return new JSONResponse(['error' => 'Unbekannter Zeitraum.'], Http::STATUS_BAD_REQUEST);
+			return new JSONResponse(['error' => $this->l->t('Unknown time range.')], Http::STATUS_BAD_REQUEST);
 		}
 
 		try {
 			$result = $this->sync->syncUser($this->uid(), $range);
 		} catch (AuthBrokerException) {
-			return new JSONResponse(['error' => 'Zugriff auf die activity tracking app abgelaufen. Bitte die Verbindung erneuern.'], Http::STATUS_BAD_GATEWAY);
+			return new JSONResponse(['error' => $this->l->t('Access to the activity tracking app has expired. Please reconnect.')], Http::STATUS_BAD_GATEWAY);
 		} catch (TrackingApiException $e) {
 			if ($e->getCode() === 401) {
-				return new JSONResponse(['error' => 'Die activity tracking app hat den Zugriff abgelehnt. Bitte die Verbindung erneuern.'], Http::STATUS_UNAUTHORIZED);
+				return new JSONResponse(['error' => $this->l->t('The activity tracking app denied access. Please reconnect.')], Http::STATUS_UNAUTHORIZED);
 			}
-			return new JSONResponse(['error' => 'Anfrage an die activity tracking app fehlgeschlagen.'], Http::STATUS_BAD_GATEWAY);
+			return new JSONResponse(['error' => $this->l->t('Request to the activity tracking app failed.')], Http::STATUS_BAD_GATEWAY);
 		} catch (\RuntimeException $e) {
-			if ($e->getMessage() === 'Nicht verbunden') {
-				return new JSONResponse(['error' => 'Noch nicht mit der activity tracking app verbunden.'], Http::STATUS_CONFLICT);
+			if ($e->getMessage() === 'Not connected') {
+				return new JSONResponse(['error' => $this->l->t('Not connected to the activity tracking app yet.')], Http::STATUS_CONFLICT);
 			}
 			throw $e;
 		} catch (\Throwable) {
-			return new JSONResponse(['error' => 'Abgleich fehlgeschlagen.'], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return new JSONResponse(['error' => $this->l->t('Sync failed.')], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
 		if ($result->busy) {
-			return new JSONResponse(['error' => 'Ein Abgleich läuft bereits.'], Http::STATUS_CONFLICT);
+			return new JSONResponse(['error' => $this->l->t('A sync is already running.')], Http::STATUS_CONFLICT);
 		}
 
 		return new JSONResponse([
@@ -134,7 +136,7 @@ class ApiController extends Controller {
 	public function activity(int $activityId): JSONResponse {
 		$row = $this->activities->findByActivityId($this->uid(), $activityId);
 		if ($row === null) {
-			return new JSONResponse(['error' => 'Aktivität nicht gefunden.'], Http::STATUS_NOT_FOUND);
+			return new JSONResponse(['error' => $this->l->t('Activity not found.')], Http::STATUS_NOT_FOUND);
 		}
 		return new JSONResponse($this->present($row));
 	}
@@ -144,12 +146,12 @@ class ApiController extends Controller {
 	public function gpx(int $activityId): DataDownloadResponse|JSONResponse {
 		$row = $this->activities->findByActivityId($this->uid(), $activityId);
 		if ($row === null || $row->getFileId() === null) {
-			return new JSONResponse(['error' => 'Keine GPX-Datei.'], Http::STATUS_NOT_FOUND);
+			return new JSONResponse(['error' => $this->l->t('No GPX file.')], Http::STATUS_NOT_FOUND);
 		}
 		try {
 			$content = $this->files->readById($this->uid(), (int)$row->getFileId());
 		} catch (NotFoundException) {
-			return new JSONResponse(['error' => 'GPX-Datei fehlt im Ordner Hot Tracks.'], Http::STATUS_NOT_FOUND);
+			return new JSONResponse(['error' => $this->l->t('GPX file is missing in the Hot Tracks folder.')], Http::STATUS_NOT_FOUND);
 		}
 		$name = $this->downloadName($row);
 		return new DataDownloadResponse($content, $name, 'application/gpx+xml');
@@ -167,7 +169,7 @@ class ApiController extends Controller {
 			$from = SyncRange::after($range);
 			$to = time();
 		} else {
-			return new JSONResponse(['error' => 'Unbekannter Zeitraum.'], Http::STATUS_BAD_REQUEST);
+			return new JSONResponse(['error' => $this->l->t('Unknown time range.')], Http::STATUS_BAD_REQUEST);
 		}
 		$modes = $this->sports->resolveFilter($uid, $this->requestSportFilter());
 		$limit = (int)$this->request->getParam('limit', 12);
@@ -218,7 +220,7 @@ class ApiController extends Controller {
 			'range' => $range,
 			'mode' => count($modes) === 1 ? $modes[0] : 'all',
 			'modes' => $modes,
-			'modeLabels' => array_map(static fn (string $id): string => SportGroup::label($id), $modes),
+			'modeLabels' => array_map(fn (string $id): string => $this->l->t(SportGroup::label($id)), $modes),
 			'sportOptions' => $this->sports->filterOptions($uid),
 			'offset' => $offset,
 			'limit' => $limit,
@@ -232,19 +234,19 @@ class ApiController extends Controller {
 	#[NoCSRFRequired]
 	public function weekZip(): DataDownloadResponse|JSONResponse {
 		if (!class_exists(\ZipArchive::class)) {
-			return new JSONResponse(['error' => 'ZIP ist auf diesem Server nicht verfügbar.'], Http::STATUS_NOT_IMPLEMENTED);
+			return new JSONResponse(['error' => $this->l->t('ZIP is not available on this server.')], Http::STATUS_NOT_IMPLEMENTED);
 		}
 		$uid = $this->uid();
 		$rows = $this->activities->findByUid($uid, 10000);
 		$tmp = tempnam(sys_get_temp_dir(), 'hot_tracks');
 		if ($tmp === false) {
-			return new JSONResponse(['error' => 'ZIP konnte nicht angelegt werden.'], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return new JSONResponse(['error' => $this->l->t('Could not create the ZIP file.')], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 		@unlink($tmp);
 		$zip = new \ZipArchive();
 		if ($zip->open($tmp, \ZipArchive::CREATE) !== true) {
 			@unlink($tmp);
-			return new JSONResponse(['error' => 'ZIP konnte nicht angelegt werden.'], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return new JSONResponse(['error' => $this->l->t('Could not create the ZIP file.')], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 		$added = 0;
 		foreach ($rows as $row) {
@@ -262,19 +264,19 @@ class ApiController extends Controller {
 		$zip->close();
 		if ($added === 0) {
 			@unlink($tmp);
-			return new JSONResponse(['error' => 'Keine GPX-Dateien gespeichert.'], Http::STATUS_NOT_FOUND);
+			return new JSONResponse(['error' => $this->l->t('No GPX files stored.')], Http::STATUS_NOT_FOUND);
 		}
 		$bytes = file_get_contents($tmp);
 		@unlink($tmp);
 		if ($bytes === false) {
-			return new JSONResponse(['error' => 'ZIP konnte nicht gelesen werden.'], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return new JSONResponse(['error' => $this->l->t('Could not read the ZIP file.')], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
-		return new DataDownloadResponse($bytes, 'hot-tracks-alles.zip', 'application/zip');
+		return new DataDownloadResponse($bytes, 'hot-tracks-all.zip', 'application/zip');
 	}
 
 	private function uid(): string {
 		if ($this->userId === null || $this->userId === '') {
-			throw new \RuntimeException('Keine Anmeldung');
+			throw new \RuntimeException('Not logged in');
 		}
 		return $this->userId;
 	}

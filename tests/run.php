@@ -157,7 +157,7 @@ check(!SportGroup::isValid('yoga'), 'yoga kein heatmap-filter');
 check(SportGroup::matchesAny(['run', 'ski'], 'BackcountrySki'), 'multiselect trifft ski');
 check(SportGroup::matchesAny(['run', 'ski'], 'Run'), 'multiselect trifft run');
 check(!SportGroup::matchesAny(['run', 'ski'], 'Ride'), 'multiselect ohne rad');
-check(SportGroup::label('water') === 'Wasser', 'sportgruppen-label');
+check(SportGroup::label('water') === 'Water', 'sportgruppen-label');
 
 check(SportPreferences::narrow(['run', 'ride'], 'all') === ['run', 'ride'], 'filter all = settings');
 check(SportPreferences::narrow(['run', 'ride'], 'run') === ['run'], 'filter run = eine gruppe');
