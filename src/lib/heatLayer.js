@@ -102,7 +102,7 @@ const HeatLayer = L.Layer.extend({
 		this._canvas.style.pointerEvents = 'none'
 		this._canvas.style.transition = 'opacity 80ms linear'
 		map.getPanes().overlayPane.appendChild(this._canvas)
-		// Volle Neuzeichnung nur nach Bewegung – während Drag nur ausblenden.
+		// Full redraw only after movement; hide the layer while dragging.
 		map.on('moveend zoomend resize', this._onSettle, this)
 		map.on('movestart zoomstart', this._onInteract, this)
 		this._schedule(true)
@@ -139,7 +139,7 @@ const HeatLayer = L.Layer.extend({
 		if (this._busy && !force) return
 		if (this._frame) cancelAnimationFrame(this._frame)
 		if (this._delay) clearTimeout(this._delay)
-		// Kurzes Debounce nach Zoom/Pan, damit nicht mehrfach gezeichnet wird.
+		// Short debounce after zoom or pan so the layer is not drawn several times.
 		this._delay = setTimeout(() => {
 			this._delay = 0
 			this._frame = requestAnimationFrame(() => {

@@ -27,7 +27,7 @@ export function elevationLine(points) {
 }
 
 /**
- * Gleichmäßig ausgedünnte Spur für die Bikerouter-URL (lon,lat;…).
+ * Evenly thinned track for the Bikerouter URL (lon,lat;…).
  * @param {Array<{lat: number, lon: number}>} points
  * @param {number} maxPoints
  */
@@ -50,7 +50,7 @@ export function sampleTrack(points, maxPoints = 80) {
 }
 
 /**
- * Link zu bikerouter.de mit Kartenmitte und lonlats-Wegpunkten.
+ * Link to bikerouter.de with the map center and lonlat waypoints.
  * @see https://bikerouter.de/
  */
 export function bikerouterUrl(points) {

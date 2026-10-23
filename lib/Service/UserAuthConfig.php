@@ -10,7 +10,7 @@ use OCP\IURLGenerator;
 use OCP\Security\ICrypto;
 
 /**
- * Pro-Benutzer: direkter Strava-OAuth (Standard) oder optional Auth-Proxy.
+ * Per user: direct Strava OAuth (default) or an optional auth proxy.
  */
 class UserAuthConfig {
 	public const MODE_DIRECT = 'direct';
@@ -34,7 +34,7 @@ class UserAuthConfig {
 		if ($mode === self::MODE_DIRECT || $mode === self::MODE_PROXY) {
 			return $mode;
 		}
-		// Ohne persönliche Einstellung: Admin-Proxy als Fallback (bestehende Installationen).
+		// Without a personal setting, fall back to the admin proxy (existing installs).
 		return $this->appConfig->isConfigured() ? self::MODE_PROXY : self::MODE_DIRECT;
 	}
 
@@ -84,7 +84,7 @@ class UserAuthConfig {
 	}
 
 	/**
-	 * Hostname ohne Schema — für Stravas „Authorization Callback Domain“.
+	 * Hostname without a scheme, for Strava's Authorization Callback Domain.
 	 */
 	public function callbackDomain(): string {
 		$host = parse_url($this->redirectUri(), PHP_URL_HOST);

@@ -6,6 +6,6 @@ namespace OCA\HotTracks\Exception;
 
 class RateLimitException extends TrackingApiException {
 	public function __construct() {
-		parent::__construct('Limit der activity tracking app erreicht', 429);
+		parent::__construct('Activity tracking app rate limit reached', 429);
 	}
 }

@@ -47,8 +47,8 @@ class ActivityMapper extends QBMapper {
 	}
 
 	/**
-	 * Neueste Aktivitäten zuerst. Die Übersicht listet damit den gespeicherten Verlauf,
-	 * nicht nur das 7-Tage-Fenster.
+	 * Newest activities first. The overview lists the stored history,
+	 * not only the 7-day window.
 	 *
 	 * @return list<Activity>
 	 */

@@ -46,7 +46,7 @@ class CopyGpxJob extends QueuedJob {
 			try {
 				$status = $this->files->copyStored($uid, (int)$fileId);
 			} catch (\Throwable $e) {
-				$this->logger->warning('Vorhandene GPX-Datei konnte nicht zusätzlich abgelegt werden', [
+				$this->logger->warning('Could not copy an existing GPX file to the extra folder', [
 					'app' => 'hot_tracks',
 					'exception' => $e,
 				]);

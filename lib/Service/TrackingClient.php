@@ -44,7 +44,7 @@ class TrackingClient {
 		]);
 		$batch = $this->getJson($token, self::BASE . '/athlete/activities?' . $query);
 		if (!array_is_list($batch)) {
-			throw new TrackingApiException('Die activity tracking app hat keine Aktivitätsliste geliefert.');
+			throw new TrackingApiException('The activity tracking app did not return an activity list.');
 		}
 		$out = [];
 		foreach ($batch as $row) {
@@ -62,7 +62,7 @@ class TrackingClient {
 	public function activity(string $token, int $activityId): array {
 		$data = $this->getJson($token, self::BASE . '/activities/' . $activityId);
 		if (array_is_list($data) || !isset($data['id'])) {
-			throw new TrackingApiException('Die activity tracking app hat keine Aktivitätsdetails geliefert.');
+			throw new TrackingApiException('The activity tracking app did not return activity details.');
 		}
 		return $data;
 	}
@@ -115,12 +115,12 @@ class TrackingClient {
 			if ($status === 429) {
 				throw new RateLimitException();
 			}
-			throw new TrackingApiException('Anfrage an die activity tracking app fehlgeschlagen.', $status, $e);
+			throw new TrackingApiException('Request to the activity tracking app failed.', $status, $e);
 		}
 
 		$decoded = json_decode($response->getBody(), true);
 		if (!is_array($decoded)) {
-			throw new TrackingApiException('Antwort der activity tracking app ist kein JSON.');
+			throw new TrackingApiException('The activity tracking app response is not JSON.');
 		}
 		return $decoded;
 	}

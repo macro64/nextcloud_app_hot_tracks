@@ -18,8 +18,8 @@ final class SyncRange {
 	}
 
 	/**
-	 * Epoch-Sekunde: Aktivitäten nach diesem Zeitpunkt abholen.
-	 * Für „alles“ ist der Wert 0.
+	 * Epoch seconds: fetch activities after this moment.
+	 * For "all" the value is 0.
 	 */
 	public static function after(string $range, ?int $now = null): int {
 		$now ??= time();
@@ -28,12 +28,12 @@ final class SyncRange {
 			self::YEAR => $now - 365 * 86400,
 			self::FIVE_YEARS => $now - 5 * 365 * 86400,
 			self::ALL => 0,
-			default => throw new \InvalidArgumentException('Unbekannter Zeitraum'),
+			default => throw new \InvalidArgumentException('Unknown time range'),
 		};
 	}
 
 	/**
-	 * Maximale Listen-Seiten (je 50 Einträge) für den gewählten Zeitraum.
+	 * Maximum list pages (50 entries each) for the chosen range.
 	 */
 	public static function maxPages(?string $range): int {
 		return match ($range) {
@@ -46,10 +46,10 @@ final class SyncRange {
 
 	public static function label(string $range): string {
 		return match ($range) {
-			self::MONTH => 'letzter Monat',
-			self::YEAR => 'letztes Jahr',
-			self::FIVE_YEARS => '5 Jahre',
-			self::ALL => 'alles',
+			self::MONTH => 'Last month',
+			self::YEAR => 'Last year',
+			self::FIVE_YEARS => '5 years',
+			self::ALL => 'All',
 			default => $range,
 		};
 	}

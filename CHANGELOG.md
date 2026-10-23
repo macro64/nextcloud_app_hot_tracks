@@ -2,18 +2,18 @@
 
 ## 1.0.2
 
-- README und Store-Texte auf Englisch
-- UI-Texte folgen dem Nextcloud-l10n-Standard mit Englisch als Quellsprache; Deutsch unter `l10n/de`
+- README and store copy in English
+- UI strings follow the Nextcloud l10n standard, with English as the source language and German in `l10n/de`
 
 ## 1.0.1
 
-- Admin-Client-Secret und Webhook-Token werden mit `ICrypto` verschlüsselt gespeichert (bestehende Klartextwerte werden beim Lesen migriert)
-- Auth-Proxy-URLs lehnen private/reservierte IP-Literale und eingebettete Zugangsdaten ab
-- Sync-API gibt bei Fehlern keine internen Exception-Texte mehr an den Client
+- The admin client secret and webhook token are stored encrypted with `ICrypto` (existing plaintext values are migrated on read)
+- Auth proxy URLs reject private and reserved IP literals and embedded credentials
+- The sync API no longer returns internal exception text to the client
 
 ## 1.0.0
 
-- Strava-Verbindung pro Person, direkt oder über einen Auth-Proxy
-- Abgleich für den letzten Monat, das letzte Jahr, fünf Jahre oder den gesamten Verlauf
-- Sportarten filtern, Wochenübersicht mit Heatmap, GPX-Export und Kopie in einen eigenen Ordner
-- Webhooks für neue, geänderte und gelöschte Aktivitäten
+- Per-person Strava connection, direct or through an auth proxy
+- Sync for the last month, the last year, five years, or the full history
+- Sport filters, a week overview with a heatmap, GPX export, and a copy into a chosen folder
+- Webhooks for created, updated, and deleted activities

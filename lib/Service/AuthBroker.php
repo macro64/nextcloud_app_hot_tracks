@@ -53,7 +53,7 @@ class AuthBroker {
 			'redirect_uri' => $this->userAuth->redirectUri(),
 		]);
 		if (!isset($data['access_token'], $data['refresh_token'], $data['expires_at'], $data['athlete']['id'])) {
-			throw new AuthBrokerException('Keine vollständigen Tokens geliefert.');
+			throw new AuthBrokerException('Incomplete tokens returned.');
 		}
 		return $data;
 	}
@@ -69,7 +69,7 @@ class AuthBroker {
 			'client_secret' => $this->userAuth->clientSecret($uid),
 		]);
 		if (!isset($data['access_token'], $data['refresh_token'], $data['expires_at'])) {
-			throw new AuthBrokerException('Keine neuen Tokens geliefert.');
+			throw new AuthBrokerException('No new tokens returned.');
 		}
 		return [
 			'access_token' => (string)$data['access_token'],
@@ -110,7 +110,7 @@ class AuthBroker {
 			}
 		} catch (\Throwable $e) {
 			throw new AuthBrokerException(
-				$usesProxy ? 'Der Auth-Dienst ist nicht erreichbar.' : 'Strava ist nicht erreichbar.',
+				$usesProxy ? 'The auth service is unreachable.' : 'Strava is unreachable.',
 				(int)$e->getCode(),
 				$e,
 			);
@@ -118,7 +118,7 @@ class AuthBroker {
 
 		$decoded = json_decode($response->getBody(), true);
 		if (!is_array($decoded)) {
-			throw new AuthBrokerException('Die Antwort war kein JSON.');
+			throw new AuthBrokerException('The response was not JSON.');
 		}
 		/** @var array<string, mixed> $decoded */
 		return $decoded;
