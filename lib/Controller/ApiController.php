@@ -107,8 +107,8 @@ class ApiController extends Controller {
 				return new JSONResponse(['error' => 'Noch nicht mit der activity tracking app verbunden.'], Http::STATUS_CONFLICT);
 			}
 			throw $e;
-		} catch (\Throwable $e) {
-			return new JSONResponse(['error' => 'Abgleich fehlgeschlagen: ' . $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
+		} catch (\Throwable) {
+			return new JSONResponse(['error' => 'Abgleich fehlgeschlagen.'], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
 		if ($result->busy) {
