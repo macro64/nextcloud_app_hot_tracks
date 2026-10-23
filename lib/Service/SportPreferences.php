@@ -6,15 +6,17 @@ namespace OCA\HotTracks\Service;
 
 use OCA\HotTracks\AppInfo\Application;
 use OCP\IConfig;
+use OCP\IL10N;
 
 /**
- * Vom Benutzer gewählte Sportgruppen: Sync-Umfang und Filteroptionen in der App.
+ * Sport groups chosen by the account: sync scope and filter options in the app.
  */
 class SportPreferences {
 	private const KEY = 'heat_sports';
 
 	public function __construct(
 		private IConfig $config,
+		private IL10N $l,
 	) {
 	}
 
@@ -34,8 +36,8 @@ class SportPreferences {
 	}
 
 	/**
-	 * Filter für Liste/Heatmap: leerer Mode oder „all“ = alle in den Settings gewählten Gruppen.
-	 * Ein einzelner Mode muss in den Settings aktiv sein.
+	 * Filter for list/heatmap: empty mode or "all" = all groups selected in settings.
+	 * A single mode must be enabled in settings.
 	 *
 	 * @return list<string>
 	 */
@@ -73,7 +75,7 @@ class SportPreferences {
 		if ($clean === []) {
 			$clean = SportGroup::ALL_IDS;
 		}
-		// Stabile Reihenfolge wie in SportGroup::ALL_IDS
+		// Stable order as in SportGroup::ALL_IDS
 		$ordered = [];
 		foreach (SportGroup::ALL_IDS as $id) {
 			if (in_array($id, $clean, true)) {
@@ -102,7 +104,7 @@ class SportPreferences {
 		foreach (SportGroup::ALL_IDS as $id) {
 			$options[] = [
 				'id' => $id,
-				'label' => SportGroup::label($id),
+				'label' => $this->l->t(SportGroup::label($id)),
 				'selected' => in_array($id, $selected, true),
 			];
 		}
@@ -110,7 +112,7 @@ class SportPreferences {
 	}
 
 	/**
-	 * Optionen für die App-Selektoren (nur aktivierte Gruppen).
+	 * Options for app selectors (enabled groups only).
 	 *
 	 * @return list<array{id: string, label: string}>
 	 */
@@ -119,7 +121,7 @@ class SportPreferences {
 		foreach ($this->selected($uid) as $id) {
 			$options[] = [
 				'id' => $id,
-				'label' => SportGroup::label($id),
+				'label' => $this->l->t(SportGroup::label($id)),
 			];
 		}
 		return $options;

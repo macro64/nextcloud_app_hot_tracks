@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import axios from '@nextcloud/axios'
+import { t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -19,10 +20,10 @@ const props = defineProps({
 })
 
 const heatRanges = [
-	{ id: 'week', label: 'Woche' },
-	{ id: 'month', label: 'Monat' },
-	{ id: 'year', label: 'Jahr' },
-	{ id: 'all', label: 'Alles' },
+	{ id: 'week', label: t('hot_tracks', 'Week') },
+	{ id: 'month', label: t('hot_tracks', 'Month') },
+	{ id: 'year', label: t('hot_tracks', 'Year') },
+	{ id: 'all', label: t('hot_tracks', 'All') },
 ]
 
 function readStored(key, fallback, allowed) {
@@ -64,18 +65,25 @@ const sportsLabel = computed(() => {
 		const hit = props.sportOptions.find((row) => row.id === heatMode.value)
 		if (hit) return hit.label
 	}
-	if (modeLabels.value.length <= 1) return modeLabels.value[0] || 'Sportarten'
+	if (modeLabels.value.length <= 1) return modeLabels.value[0] || t('hot_tracks', 'Sports')
 	if (modeLabels.value.length === 2) return modeLabels.value.join(' · ')
-	return 'Alle'
+	return t('hot_tracks', 'All')
 })
 const hasPoints = computed(() => tracks.value.some((track) => track.length > 0))
 const progressLabel = computed(() => {
 	if (!loading.value) return ''
 	if (totalCount.value > 0) {
-		return `Spuren ${Math.min(loadedCount.value, totalCount.value)}/${totalCount.value}…`
+		return t('hot_tracks', 'Tracks {loaded}/{total} …', {
+			loaded: Math.min(loadedCount.value, totalCount.value),
+			total: totalCount.value,
+		})
 	}
-	return 'Spuren werden geladen…'
+	return t('hot_tracks', 'Loading tracks …')
 })
+const heatAriaLabel = computed(() => t('hot_tracks', 'Heatmap · {range} · {sports}', {
+	range: rangeLabel.value,
+	sports: sportsLabel.value,
+}))
 
 function setRange(range) {
 	if (heatRange.value === range) return
@@ -245,7 +253,7 @@ async function load() {
 		}
 	} catch (loadError) {
 		if (current !== requestId) return
-		error.value = 'Die Heatmap konnte nicht geladen werden.'
+		error.value = t('hot_tracks', 'Could not load the heatmap.')
 		tracks.value = []
 		modeLabels.value = []
 		paint()
@@ -274,12 +282,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<aside class="hot-tracks-side" :aria-label="'Heatmap · ' + rangeLabel + ' · ' + sportsLabel">
+	<aside class="hot-tracks-side" :aria-label="heatAriaLabel">
 		<div class="hot-tracks-heat-head">
-			<p class="hot-tracks-kicker">Heatmap</p>
+			<p class="hot-tracks-kicker">{{ t('hot_tracks', 'Heatmap') }}</p>
 			<div class="hot-tracks-heat-controls">
 				<label class="hot-tracks-heat-range">
-					<span class="hot-tracks-visually-hidden">Zeitraum</span>
+					<span class="hot-tracks-visually-hidden">{{ t('hot_tracks', 'Time range') }}</span>
 					<select :value="heatRange" @change="setRange($event.target.value)">
 						<option v-for="range in heatRanges" :key="range.id" :value="range.id">{{ range.label }}</option>
 					</select>
@@ -287,7 +295,7 @@ onBeforeUnmount(() => {
 				<SportFilter
 					:value="heatMode"
 					:options="sportOptions"
-					label="Sportart filtern"
+					:label="t('hot_tracks', 'Filter by sport')"
 					@input="setMode"
 				/>
 			</div>
@@ -296,15 +304,21 @@ onBeforeUnmount(() => {
 			<div ref="mapEl" class="hot-tracks-heat" />
 			<p v-if="loading" class="hot-tracks-heat-progress">{{ progressLabel }}</p>
 			<p v-else-if="error" class="hot-tracks-heat-overlay hot-tracks-error">{{ error }}</p>
-			<p v-else-if="!hasPoints" class="hot-tracks-heat-overlay">
-				Keine Spuren für {{ sportsLabel }} · {{ rangeLabel.toLowerCase() }}.
-				<a :href="SETTINGS_URL">Sportarten wählen</a>
-			</p>
+			<p
+				v-else-if="!hasPoints"
+				class="hot-tracks-heat-overlay"
+				v-html="t('hot_tracks', 'No tracks for {sports} · {range}. {linkStart}Choose sports{linkEnd}', {
+					sports: sportsLabel,
+					range: rangeLabel.toLowerCase(),
+					linkStart: `<a href=\"${SETTINGS_URL}\">`,
+					linkEnd: '</a>',
+				}, undefined, { escape: false })"
+			/>
 		</div>
 		<div v-if="hasPoints" class="hot-tracks-heat-legend" aria-hidden="true">
-			<span>selten</span>
+			<span>{{ t('hot_tracks', 'rare') }}</span>
 			<span class="hot-tracks-heat-scale"></span>
-			<span>oft</span>
+			<span>{{ t('hot_tracks', 'often') }}</span>
 		</div>
 	</aside>
 </template>

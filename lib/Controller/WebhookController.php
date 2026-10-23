@@ -14,6 +14,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 use Psr\Log\LoggerInterface;
 
@@ -25,6 +26,7 @@ class WebhookController extends Controller {
 		private ConnectionMapper $connections,
 		private SyncService $sync,
 		private LoggerInterface $logger,
+		private IL10N $l,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -33,14 +35,14 @@ class WebhookController extends Controller {
 	#[NoCSRFRequired]
 	public function receive(string $token): JSONResponse {
 		if (!$this->appConfig->webhookTokenMatches($token)) {
-			return new JSONResponse(['error' => 'Nicht gefunden.'], Http::STATUS_NOT_FOUND);
+			return new JSONResponse(['error' => $this->l->t('Not found.')], Http::STATUS_NOT_FOUND);
 		}
 
 		$payload = $this->payload();
 		try {
 			$this->request->throwDecodingExceptionIfAny();
 		} catch (\JsonException) {
-			return new JSONResponse(['error' => 'Ungültiger Inhalt.'], Http::STATUS_BAD_REQUEST);
+			return new JSONResponse(['error' => $this->l->t('Invalid content.')], Http::STATUS_BAD_REQUEST);
 		}
 
 		$event = WebhookEvent::parse($payload);
@@ -53,7 +55,7 @@ class WebhookController extends Controller {
 			try {
 				if ($event->deauthorized) {
 					$this->connections->deleteByUid($uid);
-					$this->logger->info('Verbindung nach Widerruf gelöst', [
+					$this->logger->info('Disconnected after deauthorization', [
 						'app' => 'hot_tracks',
 						'uid' => $uid,
 					]);
@@ -65,7 +67,7 @@ class WebhookController extends Controller {
 				}
 				if ($event->objectType === 'activity') {
 					$outcome = $this->sync->pullActivity($uid, $event->objectId);
-					$this->logger->info('Aktivität aus Webhook übernommen', [
+					$this->logger->info('Activity ingested from webhook', [
 						'app' => 'hot_tracks',
 						'uid' => $uid,
 						'activity' => $event->objectId,
@@ -73,16 +75,16 @@ class WebhookController extends Controller {
 					]);
 				}
 			} catch (RateLimitException) {
-				$this->logger->info('Limit der activity tracking app erreicht, Webhook wartet auf den stündlichen Abgleich', [
+				$this->logger->info('Activity tracking app rate limit reached; webhook waits for hourly sync', [
 					'app' => 'hot_tracks',
 				]);
 				return new JSONResponse(['ok' => true, 'rateLimited' => true]);
 			} catch (\Throwable $e) {
-				$this->logger->warning('Webhook konnte nicht verarbeitet werden', [
+				$this->logger->warning('Webhook could not be processed', [
 					'app' => 'hot_tracks',
 					'exception' => $e,
 				]);
-				return new JSONResponse(['error' => 'Verarbeiten fehlgeschlagen.'], Http::STATUS_INTERNAL_SERVER_ERROR);
+				return new JSONResponse(['error' => $this->l->t('Processing failed.')], Http::STATUS_INTERNAL_SERVER_ERROR);
 			}
 		}
 

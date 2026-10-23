@@ -18,6 +18,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\BackgroundJob\IJobList;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -38,6 +39,7 @@ class PersonalController extends Controller {
 		private LoggerInterface $logger,
 		private ISession $session,
 		private IURLGenerator $urlGenerator,
+		private IL10N $l,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -59,16 +61,16 @@ class PersonalController extends Controller {
 		if ($mode === UserAuthConfig::MODE_PROXY) {
 			$urlError = AuthServiceUrl::validate($proxyUrl);
 			if ($urlError !== '') {
-				$this->session->set('hot_tracks_personal_error', $urlError);
+				$this->session->set('hot_tracks_personal_error', $this->l->t($urlError));
 				return new RedirectResponse($target);
 			}
 			if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $clientId)) {
-				$this->session->set('hot_tracks_personal_error', 'Die Client-ID darf nur Buchstaben, Ziffern, Unterstrich und Bindestrich enthalten.');
+				$this->session->set('hot_tracks_personal_error', $this->l->t('The client ID may only contain letters, digits, underscore and hyphen.'));
 				return new RedirectResponse($target);
 			}
 		} else {
 			if (!preg_match('/^[0-9]{1,12}$/', $clientId)) {
-				$this->session->set('hot_tracks_personal_error', 'Die Strava-Client-ID muss eine Zahl sein (steht unter Einstellungen → API).');
+				$this->session->set('hot_tracks_personal_error', $this->l->t('The Strava client ID must be a number (see Settings → API).'));
 				return new RedirectResponse($target);
 			}
 			$proxyUrl = '';
@@ -76,10 +78,10 @@ class PersonalController extends Controller {
 
 		if ($secret === '') {
 			if (!$this->userAuth->secretIsSet($this->userId)) {
-				$this->session->set('hot_tracks_personal_error', 'Bitte das Client-Secret eintragen.');
+				$this->session->set('hot_tracks_personal_error', $this->l->t('Please enter the client secret.'));
 				return new RedirectResponse($target);
 			}
-			// Erstes Speichern mit Admin-Fallback: Secret übernehmen, sonst bleibt es nur instanzweit.
+			// First save with admin fallback: copy secret, otherwise it stays instance-wide only.
 			if (!$this->userAuth->hasPersonalConfig($this->userId)) {
 				$secret = $this->userAuth->clientSecret($this->userId);
 			}
@@ -92,7 +94,7 @@ class PersonalController extends Controller {
 			$secret !== '' ? $secret : null,
 			$proxyUrl,
 		);
-		$this->session->set('hot_tracks_personal_notice', 'Zugangsdaten gespeichert. Danach in der App verbinden.');
+		$this->session->set('hot_tracks_personal_notice', $this->l->t('Credentials saved. Then connect in the app.'));
 		return new RedirectResponse($target);
 	}
 
@@ -108,10 +110,10 @@ class PersonalController extends Controller {
 			$raw = [];
 		}
 		$selected = $this->sports->store($this->userId, array_map('strval', $raw));
-		$labels = array_map(static fn (string $id): string => SportGroup::label($id), $selected);
+		$labels = array_map(fn (string $id): string => $this->l->t(SportGroup::label($id)), $selected);
 		$this->session->set(
 			'hot_tracks_personal_notice',
-			'Sportarten gespeichert: ' . implode(', ', $labels) . '. Abgleich und Filter in der App nutzen diese Gruppen.',
+			$this->l->t('Sports saved: %1$s. Sync and filters in the app use these groups.', [implode(', ', $labels)]),
 		);
 		return new RedirectResponse($target);
 	}
@@ -125,19 +127,19 @@ class PersonalController extends Controller {
 
 		$normalized = GpxCopyPath::normalize((string)$this->request->getParam('gpxCopyFolder', ''));
 		if ($normalized['error'] !== '') {
-			$this->session->set('hot_tracks_personal_error', $normalized['error']);
+			$this->session->set('hot_tracks_personal_error', $this->l->t($normalized['error']));
 			return new RedirectResponse($target);
 		}
 		if ($normalized['path'] === '') {
 			$this->copies->store($this->userId, '');
-			$this->session->set('hot_tracks_personal_notice', 'Zusätzlicher Ordner aus. Neue GPX-Dateien bleiben nur unter Hot Tracks. Bereits kopierte Dateien bleiben liegen.');
+			$this->session->set('hot_tracks_personal_notice', $this->l->t('Extra folder turned off. New GPX files stay under Hot Tracks only. Already copied files are left as they are.'));
 			return new RedirectResponse($target);
 		}
 
 		try {
 			$this->files->ensureFolder($this->userId, $normalized['path']);
 		} catch (\Throwable) {
-			$this->session->set('hot_tracks_personal_error', 'Der Ordner konnte nicht angelegt werden.');
+			$this->session->set('hot_tracks_personal_error', $this->l->t('The folder could not be created.'));
 			return new RedirectResponse($target);
 		}
 
@@ -154,7 +156,7 @@ class PersonalController extends Controller {
 				$status = $this->files->copyStored($this->userId, (int)$fileId);
 			} catch (\Throwable $e) {
 				$failed++;
-				$this->logger->warning('Vorhandene GPX-Datei konnte nicht zusätzlich abgelegt werden', [
+				$this->logger->warning('Could not copy existing GPX file to the extra folder', [
 					'app' => 'hot_tracks',
 					'exception' => $e,
 				]);
@@ -173,18 +175,18 @@ class PersonalController extends Controller {
 			$this->jobList->add(CopyGpxJob::class, ['uid' => $this->userId]);
 		}
 
-		$notice = 'Zusätzlicher Ordner gespeichert.';
+		$notice = $this->l->t('Extra folder saved.');
 		if ($pending) {
-			$notice .= ' Die ersten Dateien sind kopiert, der Rest folgt im Hintergrund.';
+			$notice .= ' ' . $this->l->t('The first files were copied; the rest continue in the background.');
 		} elseif ($copied === 1) {
-			$notice .= ' 1 vorhandene GPX-Datei dorthin kopiert.';
+			$notice .= ' ' . $this->l->n('%n existing GPX file was copied there.', '%n existing GPX files were copied there.', $copied);
 		} elseif ($copied > 1) {
-			$notice .= ' ' . $copied . ' vorhandene GPX-Dateien dorthin kopiert.';
+			$notice .= ' ' . $this->l->n('%n existing GPX file was copied there.', '%n existing GPX files were copied there.', $copied);
 		} else {
-			$notice .= ' Weitere Abrufe legen die Datei dort zusätzlich ab.';
+			$notice .= ' ' . $this->l->t('Further syncs will also place the file there.');
 		}
 		if ($failed > 0) {
-			$notice .= ' ' . $failed . ' konnten nicht kopiert werden.';
+			$notice .= ' ' . $this->l->n('%n file could not be copied.', '%n files could not be copied.', $failed);
 		}
 		$this->session->set('hot_tracks_personal_notice', $notice);
 		return new RedirectResponse($target);
@@ -195,7 +197,7 @@ class PersonalController extends Controller {
 		$target = $this->urlGenerator->getAbsoluteURL('/settings/user/hot_tracks');
 		if ($this->userId !== null && $this->userId !== '') {
 			$this->connections->deleteByUid($this->userId);
-			$this->session->set('hot_tracks_personal_notice', 'Verbindung getrennt. Die GPX-Dateien bleiben im Ordner Hot Tracks.');
+			$this->session->set('hot_tracks_personal_notice', $this->l->t('Disconnected. GPX files remain in the Hot Tracks folder.'));
 		}
 		return new RedirectResponse($target);
 	}

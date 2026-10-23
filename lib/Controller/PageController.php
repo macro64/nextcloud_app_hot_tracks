@@ -26,6 +26,7 @@ class PageController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function index(): TemplateResponse {
+		Util::addTranslations(Application::APP_ID, null, true);
 		$response = new TemplateResponse(Application::APP_ID, 'index');
 		$policy = new ContentSecurityPolicy();
 		$policy->addAllowedImageDomain('tile.openstreetmap.org');

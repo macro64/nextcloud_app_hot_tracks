@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- README und Store-Texte auf Englisch
+- UI-Texte folgen dem Nextcloud-l10n-Standard mit Englisch als Quellsprache; Deutsch unter `l10n/de`
+
 ## 1.0.1
 
 - Admin-Client-Secret und Webhook-Token werden mit `ICrypto` verschlüsselt gespeichert (bestehende Klartextwerte werden beim Lesen migriert)
