@@ -35,13 +35,18 @@ $useProxy = ($_['mode'] ?? '') === 'proxy';
 		<li><?php p($l->t('Save the client ID and client secret here, then connect.')); ?></li>
 	</ol>
 
+	<style>
+		#hot-tracks-auth-form:has(#hot-tracks-use-proxy:checked) #hot-tracks-direct-fields { display: none; }
+		#hot-tracks-proxy-fields { display: none; }
+		#hot-tracks-auth-form:has(#hot-tracks-use-proxy:checked) #hot-tracks-proxy-fields { display: block; }
+	</style>
 	<form method="post" action="<?php p($_['saveUrl']); ?>" id="hot-tracks-auth-form">
 		<input type="hidden" name="requesttoken" value="<?php p($_['requesttoken']); ?>">
 
-		<div id="hot-tracks-direct-fields" <?php if ($useProxy): ?>hidden<?php endif; ?>>
+		<div id="hot-tracks-direct-fields">
 			<p>
 				<label for="hot-tracks-client-id"><?php p($l->t('Client ID')); ?></label><br>
-				<input id="hot-tracks-client-id" name="clientId" type="text" inputmode="numeric" pattern="[0-9]*" value="<?php p($useProxy ? '' : $_['clientId']); ?>" autocomplete="off" style="width: min(100%, 24rem);" <?php if (!$useProxy): ?>required<?php endif; ?>>
+				<input id="hot-tracks-client-id" name="clientId" type="text" inputmode="numeric" pattern="[0-9]*" value="<?php p($useProxy ? '' : $_['clientId']); ?>" autocomplete="off" style="width: min(100%, 24rem);">
 			</p>
 			<p>
 				<label for="hot-tracks-client-secret"><?php p($l->t('Client secret')); ?></label><br>
@@ -62,14 +67,14 @@ $useProxy = ($_['mode'] ?? '') === 'proxy';
 					<?php p($l->t('Auth proxy active')); ?>
 				</label>
 			</p>
-			<div id="hot-tracks-proxy-fields" <?php if (!$useProxy): ?>hidden<?php endif; ?>>
+			<div id="hot-tracks-proxy-fields">
 				<p>
 					<label for="hot-tracks-proxy-url"><?php p($l->t('Auth service')); ?></label><br>
-					<input id="hot-tracks-proxy-url" name="proxyUrl" type="url" value="<?php p($_['proxyUrl']); ?>" style="width: min(100%, 36rem);" <?php if ($useProxy): ?>required<?php endif; ?>>
+					<input id="hot-tracks-proxy-url" name="proxyUrl" type="text" inputmode="url" value="<?php p($_['proxyUrl']); ?>" autocomplete="off" style="width: min(100%, 36rem);">
 				</p>
 				<p>
 					<label for="hot-tracks-proxy-client-id"><?php p($l->t('Client ID')); ?></label><br>
-					<input id="hot-tracks-proxy-client-id" name="proxyClientId" type="text" value="<?php p($useProxy ? $_['clientId'] : ''); ?>" autocomplete="off" style="width: min(100%, 24rem);" <?php if ($useProxy): ?>required<?php endif; ?>>
+					<input id="hot-tracks-proxy-client-id" name="proxyClientId" type="text" value="<?php p($useProxy ? $_['clientId'] : ''); ?>" autocomplete="off" style="width: min(100%, 24rem);">
 				</p>
 				<p>
 					<label for="hot-tracks-proxy-secret"><?php p($l->t('Client secret')); ?></label><br>
@@ -130,14 +135,11 @@ $useProxy = ($_['mode'] ?? '') === 'proxy';
 		<button type="submit"><?php p($l->t('Save folder')); ?></button>
 	</form>
 </div>
-<script>
+<script nonce="<?php p($_['cspNonce'] ?? ''); ?>">
 (function () {
 	var form = document.getElementById('hot-tracks-auth-form');
 	if (!form) return;
 	var useProxy = document.getElementById('hot-tracks-use-proxy');
-	var details = document.getElementById('hot-tracks-proxy-details');
-	var direct = document.getElementById('hot-tracks-direct-fields');
-	var proxyFields = document.getElementById('hot-tracks-proxy-fields');
 	var directId = document.getElementById('hot-tracks-client-id');
 	var directSecret = document.getElementById('hot-tracks-client-secret');
 	var proxyUrl = document.getElementById('hot-tracks-proxy-url');
@@ -146,50 +148,15 @@ $useProxy = ($_['mode'] ?? '') === 'proxy';
 
 	function sync() {
 		var on = !!(useProxy && useProxy.checked);
-		if (direct) direct.hidden = on;
-		if (proxyFields) proxyFields.hidden = !on;
-		if (details && on) details.open = true;
-		if (directId) {
-			directId.required = !on;
-			directId.disabled = on;
-		}
+		if (directId) directId.disabled = on;
 		if (directSecret) directSecret.disabled = on;
-		if (proxyUrl) {
-			proxyUrl.required = on;
-			proxyUrl.disabled = !on;
-		}
-		if (proxyId) {
-			proxyId.required = on;
-			proxyId.disabled = !on;
-		}
+		if (proxyUrl) proxyUrl.disabled = !on;
+		if (proxyId) proxyId.disabled = !on;
 		if (proxySecret) proxySecret.disabled = !on;
 	}
 
 	if (useProxy) useProxy.addEventListener('change', sync);
-	if (details) {
-		details.addEventListener('toggle', function () {
-			if (!details.open && useProxy && useProxy.checked) {
-				useProxy.checked = false;
-				sync();
-			}
-		});
-	}
-
-	form.addEventListener('submit', function () {
-		if (useProxy && useProxy.checked) {
-			if (directId && proxyId) directId.value = proxyId.value;
-			if (directSecret && proxySecret && proxySecret.value !== '') {
-				directSecret.value = proxySecret.value;
-			}
-			directSecret && (directSecret.disabled = false);
-			directId && (directId.disabled = false);
-		} else {
-			if (proxyUrl) proxyUrl.disabled = true;
-			if (proxyId) proxyId.disabled = true;
-			if (proxySecret) proxySecret.disabled = true;
-		}
-	});
-
+	form.addEventListener('submit', sync);
 	sync();
 })();
 </script>

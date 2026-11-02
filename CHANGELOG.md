@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+- Personal auth proxy settings save the proxy client id and secret directly, so the form no longer depends on the inline script
+
 ## 1.0.2
 
 - README and store copy in English
