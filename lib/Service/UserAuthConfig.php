@@ -37,7 +37,10 @@ class UserAuthConfig {
 		if ($mode === self::MODE_DIRECT || $mode === self::MODE_PROXY) {
 			return $mode;
 		}
-		// Without a personal setting, fall back to the admin proxy (existing installs).
+		// Server-wide Strava API keys win. Otherwise keep the shared login, if one is set.
+		if ($this->appConfig->hasDirectStrava()) {
+			return self::MODE_DIRECT;
+		}
 		return $this->appConfig->isConfigured() ? self::MODE_PROXY : self::MODE_DIRECT;
 	}
 
@@ -52,6 +55,9 @@ class UserAuthConfig {
 		}
 		if ($this->usesProxy($uid) && $this->appConfig->isConfigured()) {
 			return $this->appConfig->clientId();
+		}
+		if (!$this->usesProxy($uid)) {
+			return $this->appConfig->stravaClientId();
 		}
 		return '';
 	}
@@ -75,6 +81,9 @@ class UserAuthConfig {
 		}
 		if ($this->usesProxy($uid) && $this->appConfig->isConfigured()) {
 			return $this->appConfig->clientSecret();
+		}
+		if (!$this->usesProxy($uid)) {
+			return $this->appConfig->stravaClientSecret();
 		}
 		return '';
 	}
@@ -119,7 +128,10 @@ class UserAuthConfig {
 			}
 			return $this->clientId($uid) !== '' && $this->clientSecret($uid) !== '';
 		}
-		return $this->appConfig->isConfigured();
+		if ($this->mode($uid) === self::MODE_PROXY) {
+			return $this->appConfig->isConfigured();
+		}
+		return $this->appConfig->hasDirectStrava();
 	}
 
 	public function secretIsSet(string $uid): bool {
@@ -127,7 +139,10 @@ class UserAuthConfig {
 		if (is_string($stored) && $stored !== '' && $this->secrets->reveal($stored) !== '') {
 			return true;
 		}
-		return $this->usesProxy($uid) && $this->appConfig->clientSecret() !== '';
+		if ($this->usesProxy($uid)) {
+			return $this->appConfig->clientSecret() !== '';
+		}
+		return $this->appConfig->stravaClientSecret() !== '';
 	}
 
 	/**

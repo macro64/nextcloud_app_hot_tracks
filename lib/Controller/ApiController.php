@@ -26,6 +26,7 @@ use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\Files\NotFoundException;
 use OCP\IDateTimeZone;
+use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\IRequest;
 
@@ -40,6 +41,7 @@ class ApiController extends Controller {
 		private ActivityFiles $files,
 		private SyncService $sync,
 		private SportPreferences $sports,
+		private IGroupManager $groups,
 		private IDateTimeZone $timeZones,
 		private IL10N $l,
 	) {
@@ -74,6 +76,7 @@ class ApiController extends Controller {
 		return new JSONResponse([
 			'configured' => $this->userAuth->isConfigured($uid),
 			'connected' => $connection !== null,
+			'isAdmin' => $this->groups->isAdmin($uid),
 			'athleteName' => $connection?->getAthleteName() ?? '',
 			'timeZone' => $timezone->getName(),
 			'storedCount' => $connection === null ? 0 : $this->activities->countByUid($uid),

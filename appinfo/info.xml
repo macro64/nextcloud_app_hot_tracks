@@ -4,8 +4,8 @@
 	<id>hot_tracks</id>
 	<name>Hot Tracks</name>
 	<summary>Store your Strava activities privately in Nextcloud</summary>
-	<description><![CDATA[Connects Strava via direct OAuth (or an optional auth proxy), fetches activities (month, year, 5 years or all), stores GPX files in your personal folder and shows the last 7 days.]]></description>
-	<version>1.0.8</version>
+	<description><![CDATA[An admin sets up the shared login for the server. Each person connects under personal settings and sees their Strava ID there. Activities are stored as GPX in that person's folder, and the app shows the last 7 days.]]></description>
+	<version>1.0.9</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author mail="mail@walter-precht.de">Walter Precht</author>
 	<website>https://github.com/macro64/nextcloud_app_hot_tracks</website>

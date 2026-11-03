@@ -12,6 +12,7 @@ return [
 		['name' => 'api#sync', 'url' => '/api/sync', 'verb' => 'POST'],
 		['name' => 'api#disconnect', 'url' => '/api/disconnect', 'verb' => 'POST'],
 		['name' => 'personal#save', 'url' => '/settings/personal', 'verb' => 'POST'],
+		['name' => 'personal#saveAthleteId', 'url' => '/settings/athlete-id', 'verb' => 'POST'],
 		['name' => 'personal#disconnect', 'url' => '/settings/disconnect', 'verb' => 'POST'],
 		['name' => 'personal#saveCopyFolder', 'url' => '/settings/copy-folder', 'verb' => 'POST'],
 		['name' => 'personal#saveSports', 'url' => '/settings/sports', 'verb' => 'POST'],
@@ -20,5 +21,6 @@ return [
 		['name' => 'api#weekZip', 'url' => '/api/week/zip', 'verb' => 'GET'],
 		['name' => 'api#weekTracks', 'url' => '/api/week/tracks', 'verb' => 'GET'],
 		['name' => 'admin#save', 'url' => '/admin', 'verb' => 'POST'],
+		['name' => 'admin#saveStrava', 'url' => '/admin/strava', 'verb' => 'POST'],
 	],
 ];

@@ -11,6 +11,7 @@ use OCP\Security\ICrypto;
 class TokenStore {
 	public function __construct(
 		private ConnectionMapper $connections,
+		private AthleteId $athleteIds,
 		private ICrypto $crypto,
 		private AuthBroker $broker,
 	) {
@@ -24,7 +25,11 @@ class TokenStore {
 		$entity = $existing ?? new Connection();
 		$entity->setUid($uid);
 		if (isset($data['athlete']['id'])) {
-			$entity->setAthleteId((int)$data['athlete']['id']);
+			$athleteId = (int)$data['athlete']['id'];
+			$entity->setAthleteId($athleteId);
+			if ($athleteId > 0) {
+				$this->athleteIds->store($uid, $athleteId);
+			}
 			$firstname = trim((string)($data['athlete']['firstname'] ?? ''));
 			$lastname = trim((string)($data['athlete']['lastname'] ?? ''));
 			$name = trim($firstname . ' ' . $lastname);

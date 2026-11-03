@@ -7,6 +7,7 @@ namespace OCA\HotTracks\Controller;
 use OCA\HotTracks\Db\ActivityMapper;
 use OCA\HotTracks\Db\ConnectionMapper;
 use OCA\HotTracks\Service\ActivityFiles;
+use OCA\HotTracks\Service\AthleteId;
 use OCA\HotTracks\Service\AuthServiceUrl;
 use OCA\HotTracks\Service\GpxCopyFolder;
 use OCA\HotTracks\Service\GpxCopyPath;
@@ -30,6 +31,7 @@ class PersonalController extends Controller {
 		IRequest $request,
 		private ?string $userId,
 		private ConnectionMapper $connections,
+		private AthleteId $athleteIds,
 		private UserAuthConfig $userAuth,
 		private GpxCopyFolder $copies,
 		private SportPreferences $sports,
@@ -107,6 +109,30 @@ class PersonalController extends Controller {
 			$proxyUrl,
 		);
 		$this->session->set('hot_tracks_personal_notice', $this->l->t('API keys saved. Next: connect with Strava.'));
+		return new RedirectResponse($target);
+	}
+
+	#[NoAdminRequired]
+	public function saveAthleteId(): RedirectResponse {
+		$target = $this->urlGenerator->getAbsoluteURL('/settings/user/hot_tracks');
+		if ($this->userId === null || $this->userId === '') {
+			return new RedirectResponse($target);
+		}
+
+		$raw = trim((string)$this->request->getParam('athleteId', ''));
+		if (!preg_match('/^[0-9]{1,15}$/', $raw) || (int)$raw <= 0) {
+			$this->session->set('hot_tracks_personal_error', $this->l->t('The Strava ID must be a number.'));
+			return new RedirectResponse($target);
+		}
+
+		$athleteId = (int)$raw;
+		$this->athleteIds->store($this->userId, $athleteId);
+		$connection = $this->connections->findByUid($this->userId);
+		if ($connection !== null) {
+			$connection->setAthleteId($athleteId);
+			$this->connections->update($connection);
+		}
+		$this->session->set('hot_tracks_personal_notice', $this->l->t('Strava ID saved.'));
 		return new RedirectResponse($target);
 	}
 
@@ -206,10 +232,16 @@ class PersonalController extends Controller {
 
 	#[NoAdminRequired]
 	public function disconnect(): RedirectResponse {
-		$target = $this->urlGenerator->getAbsoluteURL('/settings/user/hot_tracks');
+		$returnToAdmin = $this->request->getParam('returnTo') === 'admin';
+		$target = $this->urlGenerator->getAbsoluteURL(
+			$returnToAdmin ? '/settings/admin/hot_tracks' : '/settings/user/hot_tracks',
+		);
 		if ($this->userId !== null && $this->userId !== '') {
 			$this->connections->deleteByUid($this->userId);
-			$this->session->set('hot_tracks_personal_notice', $this->l->t('Disconnected. GPX files remain in the Hot Tracks folder.'));
+			$this->session->set(
+				$returnToAdmin ? 'hot_tracks_admin_notice' : 'hot_tracks_personal_notice',
+				$this->l->t('Disconnected. GPX files remain in the Hot Tracks folder.'),
+			);
 		}
 		return new RedirectResponse($target);
 	}

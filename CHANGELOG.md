@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9
+
+- Administration settings hold only the shared login for the server
+- Login service URL is hidden behind a “Strava Auth-Proxy” checkbox
+- Personal settings hold the Strava ID and the Strava connect and disconnect buttons
+
 ## 1.0.8
 
 - Fix client-secret handling: do not treat undecryptable ciphertext as “still set”, and never re-encrypt broken secrets

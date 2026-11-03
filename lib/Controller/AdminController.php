@@ -54,4 +54,23 @@ class AdminController extends Controller {
 		$this->session->set('hot_tracks_admin_notice', $this->l->t('Proxy saved.'));
 		return new RedirectResponse($target);
 	}
+
+	public function saveStrava(): RedirectResponse {
+		$target = $this->urlGenerator->getAbsoluteURL('/settings/admin/hot_tracks');
+		$clientId = trim((string)$this->request->getParam('stravaClientId', ''));
+		$secret = trim((string)$this->request->getParam('stravaClientSecret', ''));
+
+		if (!preg_match('/^[0-9]{1,12}$/', $clientId)) {
+			$this->session->set('hot_tracks_admin_error', $this->l->t('The Strava client ID must be a number (see Settings → API).'));
+			return new RedirectResponse($target);
+		}
+		if ($secret === '' && $this->appConfig->stravaClientSecret() === '') {
+			$this->session->set('hot_tracks_admin_error', $this->l->t('Please enter the client secret.'));
+			return new RedirectResponse($target);
+		}
+
+		$this->appConfig->saveStrava($clientId, $secret !== '' ? $secret : null);
+		$this->session->set('hot_tracks_admin_notice', $this->l->t('Strava API keys saved. Next: connect with Strava.'));
+		return new RedirectResponse($target);
+	}
 }

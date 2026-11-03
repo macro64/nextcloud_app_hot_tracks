@@ -6,10 +6,12 @@ namespace OCA\HotTracks\Settings;
 
 use OCA\HotTracks\AppInfo\Application;
 use OCA\HotTracks\Db\ConnectionMapper;
+use OCA\HotTracks\Service\AthleteId;
 use OCA\HotTracks\Service\GpxCopyFolder;
 use OCA\HotTracks\Service\SportPreferences;
 use OCA\HotTracks\Service\UserAuthConfig;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\IGroupManager;
 use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
@@ -18,7 +20,9 @@ use OCP\Settings\ISettings;
 class Personal implements ISettings {
 	public function __construct(
 		private IUserSession $userSession,
+		private IGroupManager $groups,
 		private ConnectionMapper $connections,
+		private AthleteId $athleteIds,
 		private UserAuthConfig $userAuth,
 		private GpxCopyFolder $copies,
 		private SportPreferences $sports,
@@ -46,8 +50,14 @@ class Personal implements ISettings {
 				'hasPersonal' => false,
 			];
 
+		$storedId = $uid !== '' ? $this->athleteIds->get($uid) : 0;
+		$connectionId = $connection !== null ? (int)$connection->getAthleteId() : 0;
+
 		return new TemplateResponse(Application::APP_ID, 'personal', [
 			'connected' => $connection !== null,
+			'isAdmin' => $uid !== '' && $this->groups->isAdmin($uid),
+			'athleteId' => $storedId > 0 ? $storedId : $connectionId,
+			'saveAthleteUrl' => $this->urlGenerator->linkToRoute('hot_tracks.personal.saveAthleteId'),
 			'athleteName' => $connection?->getAthleteName() ?? '',
 			'configured' => $uid !== '' && $this->userAuth->isConfigured($uid),
 			'mode' => $state['mode'],

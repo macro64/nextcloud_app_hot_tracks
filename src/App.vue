@@ -83,13 +83,14 @@ function setListMode(mode) {
 
 const initialError = new URLSearchParams(window.location.search).get('error')
 if (initialError === 'config') {
-	error.value = t('hot_tracks', 'Finish setup first: add your Strava API keys under Settings → Hot Tracks.')
+	error.value = t('hot_tracks', 'Finish setup first: an admin sets up the shared login under Administration settings → Hot Tracks.')
 }
 if (initialError === 'oauth') {
 	error.value = t('hot_tracks', 'Strava connection failed. In Administration → Hot Tracks copy the Callback URL exactly into the auth broker redirect list (with or without index.php must match 1:1), then try again.')
 }
 
 const settingsUrl = '/settings/user/hot_tracks'
+const adminSettingsUrl = '/settings/admin/hot_tracks'
 const connectUrl = generateUrl('/apps/hot_tracks/oauth/start')
 const connectButtonSrc = imagePath('hot_tracks', 'btn_strava_connect_with_orange.svg')
 const zipUrl = generateUrl('/apps/hot_tracks/api/week/zip')
@@ -206,11 +207,11 @@ onMounted(load)
 
 		<section v-else-if="overview && !overview.configured" class="hot-tracks-setup" aria-labelledby="hot-tracks-setup-title">
 			<p class="hot-tracks-setup-step">{{ t('hot_tracks', 'Step 1 of 2') }}</p>
-			<h3 id="hot-tracks-setup-title">{{ t('hot_tracks', 'Add your Strava API keys') }}</h3>
+			<h3 id="hot-tracks-setup-title">{{ t('hot_tracks', 'Set up the shared login') }}</h3>
 			<p class="hot-tracks-setup-lead">
-				{{ t('hot_tracks', 'Go to Settings → Hot Tracks. You will create a Strava API app, copy one domain, paste two keys, then save.') }}
+				{{ t('hot_tracks', 'An admin sets up the shared login under Administration settings → Hot Tracks.') }}
 			</p>
-			<NcButton type="primary" :href="settingsUrl">{{ t('hot_tracks', 'Open setup') }}</NcButton>
+			<NcButton v-if="overview.isAdmin" type="primary" :href="adminSettingsUrl">{{ t('hot_tracks', 'Open administration') }}</NcButton>
 		</section>
 
 		<section v-else-if="overview && !overview.connected" class="hot-tracks-setup" aria-labelledby="hot-tracks-connect-title">
@@ -218,6 +219,9 @@ onMounted(load)
 			<h3 id="hot-tracks-connect-title">{{ t('hot_tracks', 'Connect Strava') }}</h3>
 			<p class="hot-tracks-setup-lead">
 				{{ t('hot_tracks', 'Authorize Hot Tracks. Your activities stay private in this Nextcloud.') }}
+			</p>
+			<p class="hot-tracks-setup-hint">
+				{{ t('hot_tracks', 'After connecting, your Strava ID is shown under Personal settings → Hot Tracks. The shared login stays under Administration settings.') }}
 			</p>
 			<a class="hot-tracks-strava-connect" :href="connectUrl">
 				<img

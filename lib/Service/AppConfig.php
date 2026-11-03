@@ -94,8 +94,35 @@ class AppConfig {
 		]);
 	}
 
+	public function stravaClientId(): string {
+		return trim($this->config->getAppValue(Application::APP_ID, 'strava_client_id', ''));
+	}
+
+	public function stravaClientSecret(): string {
+		$stored = $this->config->getAppValue(Application::APP_ID, 'strava_client_secret', '');
+		if (!is_string($stored) || $stored === '') {
+			return '';
+		}
+		$plain = $this->secrets->reveal($stored);
+		if ($plain !== '' && $this->secrets->isLegacyPlaintext($stored)) {
+			$this->persistSecret('strava_client_secret', $plain);
+		}
+		return $plain;
+	}
+
+	public function hasDirectStrava(): bool {
+		return $this->stravaClientId() !== '' && $this->stravaClientSecret() !== '';
+	}
+
 	public function isConfigured(): bool {
 		return $this->clientSecret() !== '' && $this->authServiceUrl() !== '';
+	}
+
+	public function saveStrava(string $clientId, ?string $clientSecret): void {
+		$this->config->setAppValue(Application::APP_ID, 'strava_client_id', $clientId);
+		if ($clientSecret !== null && $clientSecret !== '') {
+			$this->persistSecret('strava_client_secret', trim($clientSecret));
+		}
 	}
 
 	public function save(string $authServiceUrl, string $clientId, ?string $clientSecret): void {
