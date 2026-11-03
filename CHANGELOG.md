@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.8
+
+- Fix client-secret handling: do not treat undecryptable ciphertext as “still set”, and never re-encrypt broken secrets
+- Trim pasted client secrets on save
+
 ## 1.0.7
 
 - GPX export includes heart rate when Strava provides it (Garmin TrackPointExtension)

@@ -13,11 +13,14 @@ class AppConfig {
 	public const DEFAULT_AUTH_URL = 'https://auth.fluadrits.de';
 	public const DEFAULT_CLIENT_ID = 'nextcloud';
 
+	private SecretValue $secrets;
+
 	public function __construct(
 		private IConfig $config,
 		private IURLGenerator $urlGenerator,
-		private ICrypto $crypto,
+		ICrypto $crypto,
 	) {
+		$this->secrets = new SecretValue($crypto);
 	}
 
 	public function authServiceUrl(): string {
@@ -39,9 +42,8 @@ class AppConfig {
 		if (!is_string($stored) || $stored === '') {
 			return '';
 		}
-		$plain = $this->revealSecret($stored);
-		// Legacy: migrate plaintext from older installs on read.
-		if ($plain !== '' && $plain === $stored) {
+		$plain = $this->secrets->reveal($stored);
+		if ($plain !== '' && $this->secrets->isLegacyPlaintext($stored)) {
 			$this->persistSecret('auth_client_secret', $plain);
 		}
 		return $plain;
@@ -57,9 +59,9 @@ class AppConfig {
 	public function webhookToken(): string {
 		$stored = $this->config->getAppValue(Application::APP_ID, 'webhook_token', '');
 		if (is_string($stored) && $stored !== '') {
-			$plain = $this->revealSecret($stored);
+			$plain = $this->secrets->reveal($stored);
 			if ($this->isWebhookToken($plain)) {
-				if ($plain === $stored) {
+				if ($this->secrets->isLegacyPlaintext($stored)) {
 					$this->persistSecret('webhook_token', $plain);
 				}
 				return $plain;
@@ -79,7 +81,7 @@ class AppConfig {
 		if (!is_string($stored) || $stored === '') {
 			return false;
 		}
-		$plain = $this->revealSecret($stored);
+		$plain = $this->secrets->reveal($stored);
 		if (!$this->isWebhookToken($plain)) {
 			return false;
 		}
@@ -100,23 +102,12 @@ class AppConfig {
 		$this->config->setAppValue(Application::APP_ID, 'auth_service_url', rtrim($authServiceUrl, '/'));
 		$this->config->setAppValue(Application::APP_ID, 'auth_client_id', $clientId);
 		if ($clientSecret !== null && $clientSecret !== '') {
-			$this->persistSecret('auth_client_secret', $clientSecret);
+			$this->persistSecret('auth_client_secret', trim($clientSecret));
 		}
 	}
 
 	private function persistSecret(string $key, string $plain): void {
-		$this->config->setAppValue(Application::APP_ID, $key, $this->crypto->encrypt($plain));
-	}
-
-	/**
-	 * Decrypts stored secrets. Plaintext from older versions stays readable.
-	 */
-	private function revealSecret(string $stored): string {
-		try {
-			return $this->crypto->decrypt($stored);
-		} catch (\Throwable) {
-			return $stored;
-		}
+		$this->config->setAppValue(Application::APP_ID, $key, $this->secrets->seal($plain));
 	}
 
 	private function isWebhookToken(string $token): bool {

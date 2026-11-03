@@ -56,17 +56,17 @@ class PersonalController extends Controller {
 		$mode = $useProxy ? UserAuthConfig::MODE_PROXY : UserAuthConfig::MODE_DIRECT;
 		if ($useProxy) {
 			$clientId = trim((string)$this->request->getParam('proxyClientId', ''));
-			$secret = (string)$this->request->getParam('proxyClientSecret', '');
+			$secret = trim((string)$this->request->getParam('proxyClientSecret', ''));
 			$proxyUrl = trim((string)$this->request->getParam('proxyUrl', ''));
 			if ($clientId === '') {
 				$clientId = trim((string)$this->request->getParam('clientId', ''));
 			}
 			if ($secret === '') {
-				$secret = (string)$this->request->getParam('clientSecret', '');
+				$secret = trim((string)$this->request->getParam('clientSecret', ''));
 			}
 		} else {
 			$clientId = trim((string)$this->request->getParam('clientId', ''));
-			$secret = (string)$this->request->getParam('clientSecret', '');
+			$secret = trim((string)$this->request->getParam('clientSecret', ''));
 			$proxyUrl = '';
 		}
 

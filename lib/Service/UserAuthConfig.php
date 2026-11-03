@@ -21,12 +21,15 @@ class UserAuthConfig {
 	private const KEY_CLIENT_SECRET = 'auth_client_secret';
 	private const KEY_PROXY_URL = 'auth_proxy_url';
 
+	private SecretValue $secrets;
+
 	public function __construct(
 		private IConfig $config,
-		private ICrypto $crypto,
+		ICrypto $crypto,
 		private IURLGenerator $urlGenerator,
 		private AppConfig $appConfig,
 	) {
+		$this->secrets = new SecretValue($crypto);
 	}
 
 	public function mode(string $uid): string {
@@ -56,11 +59,19 @@ class UserAuthConfig {
 	public function clientSecret(string $uid): string {
 		$stored = $this->config->getUserValue($uid, Application::APP_ID, self::KEY_CLIENT_SECRET, '');
 		if (is_string($stored) && $stored !== '') {
-			try {
-				return $this->crypto->decrypt($stored);
-			} catch (\Throwable) {
-				return '';
+			$plain = $this->secrets->reveal($stored);
+			if ($plain !== '') {
+				if ($this->secrets->isLegacyPlaintext($stored)) {
+					$this->config->setUserValue(
+						$uid,
+						Application::APP_ID,
+						self::KEY_CLIENT_SECRET,
+						$this->secrets->seal($plain),
+					);
+				}
+				return $plain;
 			}
+			// Undecryptable personal ciphertext: fall through to the instance proxy secret.
 		}
 		if ($this->usesProxy($uid) && $this->appConfig->isConfigured()) {
 			return $this->appConfig->clientSecret();
@@ -113,7 +124,7 @@ class UserAuthConfig {
 
 	public function secretIsSet(string $uid): bool {
 		$stored = $this->config->getUserValue($uid, Application::APP_ID, self::KEY_CLIENT_SECRET, '');
-		if (is_string($stored) && $stored !== '') {
+		if (is_string($stored) && $stored !== '' && $this->secrets->reveal($stored) !== '') {
 			return true;
 		}
 		return $this->usesProxy($uid) && $this->appConfig->clientSecret() !== '';
@@ -161,7 +172,7 @@ class UserAuthConfig {
 				$uid,
 				Application::APP_ID,
 				self::KEY_CLIENT_SECRET,
-				$this->crypto->encrypt($clientSecret),
+				$this->secrets->seal(trim($clientSecret)),
 			);
 		}
 	}

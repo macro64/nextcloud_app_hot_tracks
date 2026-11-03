@@ -29,7 +29,7 @@ class AdminController extends Controller {
 		$target = $this->urlGenerator->getAbsoluteURL('/settings/admin/hot_tracks');
 		$url = trim((string)$this->request->getParam('authServiceUrl', ''));
 		$clientId = trim((string)$this->request->getParam('authClientId', ''));
-		$secret = (string)$this->request->getParam('authClientSecret', '');
+		$secret = trim((string)$this->request->getParam('authClientSecret', ''));
 
 		if ($url === '' && $clientId === '' && $secret === '' && $this->appConfig->clientSecret() === '') {
 			$this->session->set('hot_tracks_admin_notice', $this->l->t('No proxy configured — people connect directly via Strava.'));

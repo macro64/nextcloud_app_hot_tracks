@@ -17,12 +17,21 @@ use OCA\HotTracks\Service\ActivityPath;
 use OCA\HotTracks\Service\AuthServiceUrl;
 use OCA\HotTracks\Service\GpxBuilder;
 use OCA\HotTracks\Service\GpxCopyPath;
+use OCA\HotTracks\Service\SecretValue;
 use OCA\HotTracks\Service\SportGroup;
 use OCA\HotTracks\Service\SportPreferences;
 use OCA\HotTracks\Service\SyncRange;
 use OCA\HotTracks\Service\TrackPoints;
 use OCA\HotTracks\Service\WebhookEvent;
 use OCA\HotTracks\Service\WeekStats;
+
+if (!interface_exists(\OCP\Security\ICrypto::class)) {
+	eval('namespace OCP\Security { interface ICrypto {
+		public function calculateHMAC(string $message): string;
+		public function encrypt(string $plaintext, string $password = ""): string;
+		public function decrypt(string $authenticatedCiphertext, string $password = ""): string;
+	}}');
+}
 
 $failed = 0;
 
@@ -184,5 +193,36 @@ check(AuthServiceUrl::validate('https://192.168.1.10/oauth') !== '', 'private ip
 check(AuthServiceUrl::validate('https://10.0.0.5') !== '', 'rfc1918 ip is rejected');
 check(AuthServiceUrl::validate('https://user:pass@auth.example.com') !== '', 'url credentials are rejected');
 check(AuthServiceUrl::validate('not-a-url') !== '', 'invalid auth url is rejected');
+
+$crypto = new class implements \OCP\Security\ICrypto {
+	public function calculateHMAC(string $message): string {
+		return hash_hmac('sha256', $message, 'test');
+	}
+
+	public function encrypt(string $plaintext, string $password = ''): string {
+		return 'aa|bb|' . bin2hex($plaintext) . '|3';
+	}
+
+	public function decrypt(string $authenticatedCiphertext, string $password = ''): string {
+		if (!preg_match('/^[0-9a-f]+\|[0-9a-f]+\|([0-9a-f]+)\|\d+$/i', $authenticatedCiphertext, $matches)) {
+			throw new \RuntimeException('not encrypted');
+		}
+		if (strlen($matches[1]) % 2 === 1) {
+			throw new \RuntimeException('bad payload');
+		}
+		$plain = hex2bin($matches[1]);
+		if ($plain === false) {
+			throw new \RuntimeException('bad payload');
+		}
+		return $plain;
+	}
+};
+$secrets = new SecretValue($crypto);
+$sealed = $secrets->seal('broker-secret');
+check($secrets->reveal($sealed) === 'broker-secret', 'sealed secret roundtrips');
+check($secrets->reveal('plain-legacy-secret') === 'plain-legacy-secret', 'legacy plaintext still readable');
+check($secrets->isLegacyPlaintext('plain-legacy-secret'), 'legacy plaintext detected');
+check(!$secrets->isLegacyPlaintext($sealed), 'ciphertext is not legacy plaintext');
+check($secrets->reveal('aa|bb|abc|3') === '', 'undecryptable ciphertext is empty, not re-migrated');
 
 exit($failed === 0 ? 0 : 1);
