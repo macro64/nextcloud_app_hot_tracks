@@ -19,6 +19,7 @@ $proxyConfigured = !empty($_['secretSet']) && $_['authServiceUrl'] !== '';
 		.hot-tracks-admin-banner { margin: 0 0 1rem; padding: 0.65rem 0.8rem; border-radius: 8px; background: var(--color-background-hover); }
 		.hot-tracks-admin-banner--error { background: var(--color-error, #ffe8e8); }
 		.hot-tracks-admin-status { margin: 0 0 1.25rem; }
+		.hot-tracks-admin-disconnect { margin: 0 0 1.25rem; }
 		.hot-tracks-admin-secondary { margin-top: 0.5rem; }
 		.hot-tracks-admin-copyrow { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.35rem; }
 		.hot-tracks-admin-copyrow code,
@@ -42,6 +43,20 @@ $proxyConfigured = !empty($_['secretSet']) && $_['authServiceUrl'] !== '';
 	<p class="hot-tracks-admin-muted">
 		<?php p($l->t('Everyone connects Strava under Personal settings → Hot Tracks.')); ?>
 	</p>
+
+	<?php if (!empty($_['connected'])): ?>
+		<p>
+			<?php if (!empty($_['athleteName'])): ?>
+				<?php p($l->t('Connected as %1$s.', [$_['athleteName']])); ?>
+			<?php else: ?>
+				<?php p($l->t('Connected.')); ?>
+			<?php endif; ?>
+		</p>
+		<form method="post" action="<?php p($_['disconnectUrl']); ?>" class="hot-tracks-admin-disconnect">
+			<input type="hidden" name="requesttoken" value="<?php p($_['requesttoken']); ?>">
+			<button type="submit" class="button"><?php p($l->t('Disconnect Strava')); ?></button>
+		</form>
+	<?php endif; ?>
 
 	<?php if ($proxyConfigured): ?>
 		<p class="hot-tracks-admin-status">
@@ -90,6 +105,15 @@ $proxyConfigured = !empty($_['secretSet']) && $_['authServiceUrl'] !== '';
 (function () {
 	var copied = <?php echo json_encode($l->t('Copied')); ?>;
 	var copyLabel = <?php echo json_encode($l->t('Copy')); ?>;
+	var disconnectForm = document.querySelector('.hot-tracks-admin-disconnect');
+	if (disconnectForm) {
+		disconnectForm.addEventListener('submit', function (event) {
+			if (!window.confirm(<?php echo json_encode($l->t('Disconnect Strava? GPX files in Hot Tracks stay in your files.')); ?>)) {
+				event.preventDefault();
+			}
+		});
+	}
+
 	document.querySelectorAll('.hot-tracks-admin-copy').forEach(function (btn) {
 		btn.addEventListener('click', function () {
 			var input = document.getElementById(btn.getAttribute('data-copy-target'));

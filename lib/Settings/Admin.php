@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace OCA\HotTracks\Settings;
 
 use OCA\HotTracks\AppInfo\Application;
+use OCA\HotTracks\Db\ConnectionMapper;
 use OCA\HotTracks\Service\AppConfig;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\ISession;
 use OCP\IURLGenerator;
+use OCP\IUserSession;
 use OCP\Settings\ISettings;
 
 class Admin implements ISettings {
 	public function __construct(
 		private AppConfig $appConfig,
+		private ConnectionMapper $connections,
+		private IUserSession $userSession,
 		private ISession $session,
 		private IURLGenerator $urlGenerator,
 	) {
@@ -25,12 +29,17 @@ class Admin implements ISettings {
 		$this->session->remove('hot_tracks_admin_error');
 		$this->session->remove('hot_tracks_admin_notice');
 
+		$uid = $this->userSession->getUser()?->getUID() ?? '';
+		$connection = $uid !== '' ? $this->connections->findByUid($uid) : null;
+
 		return new TemplateResponse(Application::APP_ID, 'admin', [
 			'authServiceUrl' => $this->appConfig->authServiceUrl(),
 			'authClientId' => $this->appConfig->clientId(),
 			'secretSet' => $this->appConfig->clientSecret() !== '',
 			'redirectUri' => $this->appConfig->redirectUri(),
-			'webhookUrl' => $this->appConfig->webhookUrl(),
+			'connected' => $connection !== null,
+			'athleteName' => $connection?->getAthleteName() ?? '',
+			'disconnectUrl' => $this->urlGenerator->linkToRoute('hot_tracks.personal.disconnect'),
 			'saveUrl' => $this->urlGenerator->linkToRoute('hot_tracks.admin.save'),
 			'error' => is_string($error) ? $error : '',
 			'notice' => is_string($notice) ? $notice : '',

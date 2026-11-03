@@ -13,7 +13,7 @@ Tokens and files are bound to the Nextcloud user id. The app does not create sha
 3. Pick a range (month / year / 5 years / all) and **Sync**. The page shows the last 7 calendar days in that person's time zone. Large ranges can hit the API limit. Sync the same range again; activities that are already stored are skipped. The hourly job only fetches activities that are new since the last successful run.
 4. **Optional auth proxy:** Enable **Use auth proxy** in the personal settings, or set an instance fallback under **Administration → Hot Tracks**. Several Nextcloud instances can share the OAuth client `nextcloud`. Each instance adds its callback URL to `NEXTCLOUD_REDIRECT_URIS` and, if used, its webhook URL to `NEXTCLOUD_WEBHOOK_FORWARD_URL`. Re-seed the auth service. `POST /oauth/token` must accept `grant_type=refresh_token`. When the webhook URL is set on the auth service, created, updated, and deleted activities arrive immediately as well.
 
-GPX files are stored under `Hot Tracks/YYYY/MM/`. Personal settings choose which sports (run, ride, ski, water) are synced and which filters appear in the list and the heatmap. An extra folder in Files can be set, and the same GPX file is copied there. The activity export and **Download all as ZIP** serve the files from Hot Tracks. Indoor activities without GPS appear in the list only.
+GPX files are stored under `Hot Tracks/YYYY/MM/`. Personal settings choose which sports (run, ride, ski, water) are synced and which filters appear in the list and the heatmap. An extra folder in Files can be set, and the same GPX file is copied there. The activity export and **Download all tracks** serve the files from Hot Tracks. Indoor activities without GPS appear in the list only.
 
 ## Rebuild the frontend
 

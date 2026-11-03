@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.6
+
+- Heatmap time range and activity filter moved into the main header controls
+- Clearer Sync / Download labels; disconnect also available on the admin page when the admin is connected
+
 ## 1.0.5
 
 - Clearer stepwise onboarding in the app and personal settings; secondary options stay collapsed

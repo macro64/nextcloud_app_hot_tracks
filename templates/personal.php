@@ -28,7 +28,7 @@ $callbackDomain = (string)($_['callbackDomain'] ?? '');
 		.hot-tracks-settings-banner { margin: 0 0 1rem; padding: 0.65rem 0.8rem; border-radius: 8px; background: var(--color-background-hover); }
 		.hot-tracks-settings-banner--error { background: var(--color-error, #ffe8e8); }
 		.hot-tracks-settings-status { margin-bottom: 1.5rem; }
-		.hot-tracks-settings-disconnect { display: inline; margin: 0; }
+		.hot-tracks-settings-disconnect { display: inline-flex; margin: 0; }
 		.hot-tracks-settings-secondary { margin-top: 1.5rem; }
 		#hot-tracks-auth-form:has(#hot-tracks-use-proxy:checked) #hot-tracks-direct-fields { display: none; }
 		#hot-tracks-proxy-fields { display: none; }
@@ -49,7 +49,7 @@ $callbackDomain = (string)($_['callbackDomain'] ?? '');
 				<a class="button primary" href="<?php p($_['appUrl']); ?>"><?php p($l->t('Open Hot Tracks')); ?></a>
 				<form method="post" action="<?php p($_['disconnectUrl']); ?>" class="hot-tracks-settings-disconnect">
 					<input type="hidden" name="requesttoken" value="<?php p($_['requesttoken']); ?>">
-					<button type="submit"><?php p($l->t('Disconnect Strava')); ?></button>
+					<button type="submit" class="button"><?php p($l->t('Disconnect Strava')); ?></button>
 				</form>
 			</p>
 		</div>

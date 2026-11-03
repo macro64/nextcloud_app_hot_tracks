@@ -11,6 +11,7 @@ import { formatDistance, formatDuration, formatElevation, formatWhen, sportLabel
 
 const RANGE_KEY = 'hot_tracks_sync_range'
 const LIST_MODE_KEY = 'hot_tracks_list_mode'
+const HEAT_RANGE_KEY = 'hot_tracks_heat_range'
 const EMPTY_OPTIONS = Object.freeze([])
 
 const syncRanges = [
@@ -19,6 +20,12 @@ const syncRanges = [
 	{ id: '5y', label: t('hot_tracks', '5 years') },
 	{ id: 'all', label: t('hot_tracks', 'All') },
 ]
+const heatRanges = computed(() => [
+	{ id: 'week', label: t('hot_tracks', 'Week') },
+	{ id: 'month', label: t('hot_tracks', 'Month') },
+	{ id: 'year', label: t('hot_tracks', 'Year') },
+	{ id: 'all', label: t('hot_tracks', 'All') },
+])
 
 function readStored(key, fallback, allowed) {
 	try {
@@ -41,7 +48,8 @@ function writeStored(key, value) {
 const loading = ref(true)
 const syncing = ref(false)
 const syncRange = ref(readStored(RANGE_KEY, 'year', syncRanges.map((row) => row.id)))
-const listMode = ref(readStored(LIST_MODE_KEY, 'all'))
+const heatRange = ref(readStored(HEAT_RANGE_KEY, 'year', ['week', 'month', 'year', 'all']))
+const listMode = ref(readStored('hot_tracks_heat_mode', '') || readStored(LIST_MODE_KEY, 'all'))
 const heatmapRevision = ref(0)
 const error = ref('')
 const notice = ref('')
@@ -50,15 +58,26 @@ const selectedId = ref(null)
 
 const syncRangeLabel = computed(() => syncRanges.find((row) => row.id === syncRange.value)?.label ?? t('hot_tracks', 'Time range'))
 const sportOptions = computed(() => overview.value?.sportOptions ?? EMPTY_OPTIONS)
+const listSportLabel = computed(() => {
+	if (listMode.value === 'all') return t('hot_tracks', 'All')
+	return sportOptions.value.find((row) => row.id === listMode.value)?.label || sportLabel(listMode.value)
+})
 
 watch(syncRange, (value) => {
 	writeStored(RANGE_KEY, value)
 })
 
+function setHeatRange(range) {
+	if (heatRange.value === range) return
+	heatRange.value = range
+	writeStored(HEAT_RANGE_KEY, range)
+}
+
 function setListMode(mode) {
 	if (listMode.value === mode) return
 	listMode.value = mode
 	writeStored(LIST_MODE_KEY, mode)
+	writeStored('hot_tracks_heat_mode', mode)
 	load({ quiet: true })
 }
 
@@ -153,19 +172,31 @@ onMounted(load)
 
 <template>
 	<div class="hot-tracks-app">
-		<header class="hot-tracks-top">
-			<div>
-				<h2>{{ t('hot_tracks', 'Hot Tracks') }}</h2>
+		<header v-if="overview?.connected && !selected && !needsFirstSync" class="hot-tracks-top">
+			<div class="hot-tracks-heat-controls">
+				<label class="hot-tracks-heat-range">
+					<span class="hot-tracks-control-label">{{ t('hot_tracks', 'Time') }}</span>
+					<select :value="heatRange" @change="setHeatRange($event.target.value)">
+						<option v-for="range in heatRanges" :key="range.id" :value="range.id">{{ range.label }}</option>
+					</select>
+				</label>
+				<SportFilter
+					:value="listMode"
+					:options="sportOptions"
+					:label="t('hot_tracks', 'Activity')"
+					show-label
+					@input="setListMode"
+				/>
 			</div>
-			<div v-if="overview?.connected && !selected && !needsFirstSync" class="hot-tracks-actions">
+			<div class="hot-tracks-actions">
 				<label class="hot-tracks-range">
 					<span class="hot-tracks-visually-hidden">{{ t('hot_tracks', 'Time range') }}</span>
 					<select v-model="syncRange" :disabled="syncing">
 						<option v-for="range in syncRanges" :key="range.id" :value="range.id">{{ range.label }}</option>
 					</select>
 				</label>
-				<NcButton :disabled="syncing" @click="syncNow">{{ syncing ? t('hot_tracks', 'Syncing …') : t('hot_tracks', 'Sync') }}</NcButton>
-				<NcButton v-if="gpxCount" :href="zipUrl">{{ t('hot_tracks', 'Download all as ZIP') }}</NcButton>
+				<NcButton :disabled="syncing" @click="syncNow">{{ syncing ? t('hot_tracks', 'Syncing …') : t('hot_tracks', 'Sync Strava') }}</NcButton>
+				<NcButton v-if="gpxCount" :href="zipUrl">{{ t('hot_tracks', 'Download all tracks') }}</NcButton>
 			</div>
 		</header>
 
@@ -250,12 +281,7 @@ onMounted(load)
 				</ul>
 				<div class="hot-tracks-list-head">
 					<p class="hot-tracks-kicker hot-tracks-list-title">{{ t('hot_tracks', 'All activities') }}</p>
-					<SportFilter
-						:value="listMode"
-						:options="sportOptions"
-						:label="t('hot_tracks', 'Filter by sport')"
-						@input="setListMode"
-					/>
+					<p class="hot-tracks-filter-note">{{ t('hot_tracks', 'Filter: {sport}', { sport: listSportLabel }) }}</p>
 				</div>
 				<p
 					v-if="overview.activities.length === 0"
@@ -283,7 +309,7 @@ onMounted(load)
 					</button>
 				</div>
 			</div>
-			<WeekHeatmap :revision="heatmapRevision" :sport-options="sportOptions" />
+			<WeekHeatmap :revision="heatmapRevision" :sport-options="sportOptions" :mode="listMode" :range="heatRange" @mode="setListMode" />
 		</div>
 	</div>
 </template>

@@ -7,10 +7,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { heatLayer } from '../lib/heatLayer.js'
 import { TILE_OPTIONS, TILE_URL } from '../lib/mapTiles.js'
-import SportFilter from './SportFilter.vue'
 
-const RANGE_KEY = 'hot_tracks_heat_range'
-const MODE_KEY = 'hot_tracks_heat_mode'
 const SETTINGS_URL = '/settings/user/hot_tracks'
 const PAGE_SIZE = 12
 const DEFAULT_VIEW = { lat: 51.16, lon: 10.45, zoom: 6 }
@@ -18,7 +15,11 @@ const DEFAULT_VIEW = { lat: 51.16, lon: 10.45, zoom: 6 }
 const props = defineProps({
 	revision: { type: Number, default: 0 },
 	sportOptions: { type: Array, default: () => [] },
+	mode: { type: String, default: 'all' },
+	range: { type: String, default: 'year' },
 })
+
+const emit = defineEmits(['mode'])
 
 const heatRanges = [
 	{ id: 'week', label: t('hot_tracks', 'Week') },
@@ -27,24 +28,6 @@ const heatRanges = [
 	{ id: 'all', label: t('hot_tracks', 'All') },
 ]
 
-function readStored(key, fallback, allowed) {
-	try {
-		const value = window.localStorage.getItem(key)
-		if (value && (!allowed || allowed.includes(value))) return value
-	} catch (error) {
-		// ignore
-	}
-	return fallback
-}
-
-function writeStored(key, value) {
-	try {
-		window.localStorage.setItem(key, value)
-	} catch (error) {
-		// ignore
-	}
-}
-
 const mapEl = ref(null)
 const loading = ref(false)
 const error = ref('')
@@ -52,8 +35,8 @@ const tracks = ref([])
 const loadedCount = ref(0)
 const totalCount = ref(0)
 const modeLabels = ref([])
-const heatRange = ref(readStored(RANGE_KEY, 'year', heatRanges.map((row) => row.id)))
-const heatMode = ref(readStored(MODE_KEY, 'all'))
+const heatRange = computed(() => props.range || 'year')
+const heatMode = computed(() => props.mode || 'all')
 let map
 let layer
 let observer
@@ -98,16 +81,9 @@ const emptyTracksHtml = computed(() => t(
 	{ escape: false },
 ))
 
-function setRange(range) {
-	if (heatRange.value === range) return
-	heatRange.value = range
-	writeStored(RANGE_KEY, range)
-}
-
 function setMode(mode) {
 	if (heatMode.value === mode) return
-	heatMode.value = mode
-	writeStored(MODE_KEY, mode)
+	emit('mode', mode)
 }
 
 watch(
@@ -295,23 +271,6 @@ onBeforeUnmount(() => {
 
 <template>
 	<aside class="hot-tracks-side" :aria-label="heatAriaLabel">
-		<div class="hot-tracks-heat-head">
-			<p class="hot-tracks-kicker">{{ t('hot_tracks', 'Heatmap') }}</p>
-			<div class="hot-tracks-heat-controls">
-				<label class="hot-tracks-heat-range">
-					<span class="hot-tracks-visually-hidden">{{ t('hot_tracks', 'Time range') }}</span>
-					<select :value="heatRange" @change="setRange($event.target.value)">
-						<option v-for="range in heatRanges" :key="range.id" :value="range.id">{{ range.label }}</option>
-					</select>
-				</label>
-				<SportFilter
-					:value="heatMode"
-					:options="sportOptions"
-					:label="t('hot_tracks', 'Filter by sport')"
-					@input="setMode"
-				/>
-			</div>
-		</div>
 		<div class="hot-tracks-heat-shell">
 			<div ref="mapEl" class="hot-tracks-heat" />
 			<p v-if="loading" class="hot-tracks-heat-progress">{{ progressLabel }}</p>
