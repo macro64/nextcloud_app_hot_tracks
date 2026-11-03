@@ -94,6 +94,7 @@ cp -f "${ARCHIVE}" "${STAGE_ROOT}/${APP_ID}-${VERSION}.tar.gz"
 
 echo "Created ${ARCHIVE}"
 echo "Created ${STAGE_ROOT}/${APP_ID}-${VERSION}.tar.gz"
-tar -tzf "${ARCHIVE}" | head -20
+# Avoid SIGPIPE/pipefail failure when head closes the pipe early.
+tar -tzf "${ARCHIVE}" | head -20 || true
 echo "..."
 echo "files: $(tar -tzf "${ARCHIVE}" | wc -l | tr -d ' ')"
