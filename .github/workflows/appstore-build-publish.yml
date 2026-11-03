@@ -1,0 +1,106 @@
+# Build a signed Hot Tracks release tarball, attach it to the GitHub release,
+# and publish it to the Nextcloud App Store.
+#
+# Trigger: publish a GitHub Release for a tag like v1.0.4 (must match appinfo/info.xml).
+#
+# Required repository secrets:
+#   APPSTORE_TOKEN   — token from https://apps.nextcloud.com (Account → API Token)
+#   APP_PRIVATE_KEY  — PEM contents of ~/.nextcloud/certificates/hot_tracks.key
+
+name: Build and publish app release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstore-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: hot_tracks
+
+    steps:
+      - name: Set app version from tag
+        run: |
+          echo "APP_VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          echo "APP_VERSION_NUMBER=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          path: ${{ env.APP_NAME }}
+
+      - name: Validate app version against tag
+        run: |
+          set -euo pipefail
+          xml_version="$(sed -n 's/.*<version>\([^<]*\)<\/version>.*/\1/p' "${APP_NAME}/appinfo/info.xml" | head -1)"
+          echo "tag=${APP_VERSION_NUMBER} info.xml=${xml_version}"
+          test "${APP_VERSION_NUMBER}" = "${xml_version}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ${{ env.APP_NAME }}/package-lock.json
+
+      - name: Install and build frontend
+        working-directory: ${{ env.APP_NAME }}
+        env:
+          CYPRESS_INSTALL_BINARY: 0
+        run: |
+          npm ci
+          npm run build
+
+      - name: Write app private key
+        working-directory: ${{ env.APP_NAME }}
+        env:
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${APP_PRIVATE_KEY}"
+          mkdir -p "${HOME}/.nextcloud/certificates"
+          umask 077
+          printf '%s\n' "${APP_PRIVATE_KEY}" > "${HOME}/.nextcloud/certificates/${APP_NAME}.key"
+          openssl pkey -in "${HOME}/.nextcloud/certificates/${APP_NAME}.key" -noout
+
+      - name: Package appstore tarball
+        working-directory: ${{ env.APP_NAME }}
+        run: bash scripts/package-appstore.sh
+
+      - name: Attach versioned tarball to GitHub release
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
+        id: attach_versioned
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.APP_NAME }}/build/artifacts/${{ env.APP_NAME }}-${{ env.APP_VERSION_NUMBER }}.tar.gz
+          asset_name: ${{ env.APP_NAME }}-${{ env.APP_VERSION_NUMBER }}.tar.gz
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: Attach canonical tarball to GitHub release
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
+        id: attach_canonical
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.APP_NAME }}/build/artifacts/${{ env.APP_NAME }}.tar.gz
+          asset_name: ${{ env.APP_NAME }}.tar.gz
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: Upload app to Nextcloud App Store
+        uses: nextcloud-libraries/nextcloud-appstore-push-action@a011fe619bcf6e77ddebc96f9908e1af4071b9c1 # v1.0.3
+        with:
+          app_name: ${{ env.APP_NAME }}
+          appstore_token: ${{ secrets.APPSTORE_TOKEN }}
+          download_url: ${{ steps.attach_canonical.outputs.browser_download_url }}
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          nightly: ${{ github.event.release.prerelease }}

@@ -2,6 +2,9 @@
 /node_modules/
 /vendor/
 
+# App Store packaging
+/build/
+
 # Secrets and local config
 .env
 .env.*

@@ -2,6 +2,9 @@
   "name": "hot_tracks",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^20.0.0 || ^22.0.0"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
