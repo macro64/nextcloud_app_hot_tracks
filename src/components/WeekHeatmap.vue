@@ -6,6 +6,7 @@ import { generateUrl } from '@nextcloud/router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { heatLayer } from '../lib/heatLayer.js'
+import { TILE_OPTIONS, TILE_URL } from '../lib/mapTiles.js'
 import SportFilter from './SportFilter.vue'
 
 const RANGE_KEY = 'hot_tracks_heat_range'
@@ -84,6 +85,18 @@ const heatAriaLabel = computed(() => t('hot_tracks', 'Heatmap · {range} · {spo
 	range: rangeLabel.value,
 	sports: sportsLabel.value,
 }))
+const emptyTracksHtml = computed(() => t(
+	'hot_tracks',
+	'No tracks for {sports} · {range}. {linkStart}Choose sports{linkEnd}',
+	{
+		sports: sportsLabel.value,
+		range: rangeLabel.value.toLowerCase(),
+		linkStart: `<a href="${SETTINGS_URL}">`,
+		linkEnd: '</a>',
+	},
+	undefined,
+	{ escape: false },
+))
 
 function setRange(range) {
 	if (heatRange.value === range) return
@@ -152,10 +165,9 @@ function ensureMap() {
 			scrollWheelZoom: true,
 			preferCanvas: true,
 		}).setView([DEFAULT_VIEW.lat, DEFAULT_VIEW.lon], DEFAULT_VIEW.zoom)
-		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '&copy; OpenStreetMap',
+		L.tileLayer(TILE_URL, {
+			...TILE_OPTIONS,
 			className: 'hot-tracks-tiles-dark',
-			maxZoom: 18,
 			updateWhenIdle: true,
 			keepBuffer: 1,
 		}).addTo(map)
@@ -307,12 +319,7 @@ onBeforeUnmount(() => {
 			<p
 				v-else-if="!hasPoints"
 				class="hot-tracks-heat-overlay"
-				v-html="t('hot_tracks', 'No tracks for {sports} · {range}. {linkStart}Choose sports{linkEnd}', {
-					sports: sportsLabel,
-					range: rangeLabel.toLowerCase(),
-					linkStart: `<a href=\"${SETTINGS_URL}\">`,
-					linkEnd: '</a>',
-				}, undefined, { escape: false })"
+				v-html="emptyTracksHtml"
 			/>
 		</div>
 		<div v-if="hasPoints" class="hot-tracks-heat-legend" aria-hidden="true">

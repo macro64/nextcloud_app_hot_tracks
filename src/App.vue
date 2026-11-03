@@ -81,6 +81,16 @@ const selected = computed(() => {
 })
 
 const gpxCount = computed(() => (overview.value?.activities ?? []).filter((row) => row.hasGpx).length)
+const emptyFilterHtml = computed(() => t(
+	'hot_tracks',
+	'Nothing for this filter yet. {linkStart}Choose sports in settings{linkEnd} and sync above.',
+	{
+		linkStart: `<a href="${settingsUrl}">`,
+		linkEnd: '</a>',
+	},
+	undefined,
+	{ escape: false },
+))
 
 async function load({ quiet = false } = {}) {
 	if (!quiet) loading.value = true
@@ -219,10 +229,7 @@ onMounted(load)
 				<p
 					v-if="overview.activities.length === 0"
 					class="hot-tracks-empty"
-					v-html="t('hot_tracks', 'Nothing for this filter yet. {linkStart}Choose sports in settings{linkEnd} and sync above.', {
-						linkStart: `<a href=\"${settingsUrl}\">`,
-						linkEnd: '</a>',
-					}, undefined, { escape: false })"
+					v-html="emptyFilterHtml"
 				/>
 				<p v-else-if="overview.storedCount > overview.activities.length" class="hot-tracks-muted">
 					{{ t('hot_tracks', 'Showing the latest {shown} of {total} (filtered).', { shown: overview.activities.length, total: overview.storedCount }) }}

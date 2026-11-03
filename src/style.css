@@ -258,7 +258,7 @@
 	background: #0b0d10;
 }
 
-/* Dunkle Basemap ohne extra Tile-Host (Nextcloud-CSP). */
+/* Dark basemap via CSS — keeps a single tile host for CSP. */
 .hot-tracks-heat .hot-tracks-tiles-dark {
 	filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.95);
 }

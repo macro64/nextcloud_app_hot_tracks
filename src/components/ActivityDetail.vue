@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { bikerouterUrl, elevationLine, parseGpx } from '../lib/gpx.js'
 import { formatDistance, formatDuration, formatElevation, formatWhen, sportLabel, tempoLabel } from '../lib/format.js'
+import { TILE_OPTIONS, TILE_URL } from '../lib/mapTiles.js'
 
 const props = defineProps({
 	activity: { type: Object, required: true },
@@ -48,10 +49,7 @@ function draw() {
 	if (!mapEl.value || points.value.length === 0) return
 	if (!map) {
 		map = L.map(mapEl.value, { scrollWheelZoom: false })
-		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '&copy; OpenStreetMap',
-			maxZoom: 18,
-		}).addTo(map)
+		L.tileLayer(TILE_URL, TILE_OPTIONS).addTo(map)
 	}
 	if (layer) layer.remove()
 	layer = L.layerGroup().addTo(map)
