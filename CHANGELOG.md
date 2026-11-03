@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4
+
+- OSM map tiles work under Nextcloud's `Referrer-Policy: no-referrer` via Leaflet `referrerPolicy`
+- Empty-state markup under the heatmap and activity list no longer leaks Vue source into the UI
+
 ## 1.0.3
 
 - Personal auth proxy settings save the proxy client id and secret directly, so the form no longer depends on the inline script
