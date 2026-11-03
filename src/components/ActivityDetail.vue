@@ -1,12 +1,12 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import axios from '@nextcloud/axios'
-import { getCanonicalLocale, t } from '@nextcloud/l10n'
+import { t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import { bikerouterUrl, elevationLine, parseGpx } from '../lib/gpx.js'
+import { bikerouterUrl, parseGpx, profileChart } from '../lib/gpx.js'
 import { formatDistance, formatDuration, formatElevation, formatWhen, sportLabel, tempoLabel } from '../lib/format.js'
 import { TILE_OPTIONS, TILE_URL } from '../lib/mapTiles.js'
 
@@ -25,19 +25,12 @@ let layer
 
 const gpxUrl = computed(() => generateUrl(`/apps/hot_tracks/api/activities/${props.activity.activityId}/gpx`))
 const routerUrl = computed(() => bikerouterUrl(points.value))
-const profile = computed(() => elevationLine(points.value))
-const elevationSpan = computed(() => {
-	const values = points.value.map((point) => point.ele).filter((value) => Number.isFinite(value))
-	if (values.length < 2) return ''
-	let locale
-	try {
-		locale = getCanonicalLocale() || undefined
-	} catch (error) {
-		locale = undefined
-	}
-	const min = Math.round(Math.min(...values))
-	const max = Math.round(Math.max(...values))
-	return `${min.toLocaleString(locale)}–${max.toLocaleString(locale)} m`
+const chart = computed(() => profileChart(points.value))
+const profileCaption = computed(() => {
+	const parts = [t('hot_tracks', 'Elevation')]
+	if (chart.value?.hasSpeed) parts.push(t('hot_tracks', 'Speed'))
+	if (chart.value?.hasHr) parts.push(t('hot_tracks', 'Heart rate'))
+	return parts.join(' · ')
 })
 
 function trackColor() {
@@ -48,7 +41,7 @@ function trackColor() {
 function draw() {
 	if (!mapEl.value || points.value.length === 0) return
 	if (!map) {
-		map = L.map(mapEl.value, { scrollWheelZoom: false })
+		map = L.map(mapEl.value, { scrollWheelZoom: true })
 		L.tileLayer(TILE_URL, TILE_OPTIONS).addTo(map)
 	}
 	if (layer) layer.remove()
@@ -134,10 +127,29 @@ onBeforeUnmount(resetMap)
 		<p v-else-if="gpxError" class="hot-tracks-error">{{ gpxError }}</p>
 		<p v-else class="hot-tracks-empty">{{ t('hot_tracks', 'No GPS track. The summary is still available.') }}</p>
 
-		<div v-if="profile" class="hot-tracks-profile">
-			<p class="hot-tracks-muted">{{ t('hot_tracks', 'Elevation along the track') }}<span v-if="elevationSpan"> · {{ elevationSpan }}</span></p>
-			<svg viewBox="0 0 640 72" role="img" :aria-label="t('hot_tracks', 'Elevation profile')">
-				<polyline :points="profile" />
+		<div v-if="chart" class="hot-tracks-profile">
+			<p class="hot-tracks-muted">{{ profileCaption }}</p>
+			<svg :viewBox="chart.viewBox" role="img" :aria-label="profileCaption">
+				<line
+					v-for="(line, index) in chart.grid"
+					:key="'grid-' + index"
+					class="hot-tracks-profile-grid"
+					:x1="line.x1"
+					:y1="line.y1"
+					:x2="line.x2"
+					:y2="line.y2" />
+				<polyline
+					v-for="line in chart.lines"
+					:key="line.key"
+					:class="line.className"
+					:points="line.points" />
+				<text
+					v-for="(label, index) in chart.labels"
+					:key="'label-' + index"
+					:x="label.x"
+					:y="label.y"
+					:text-anchor="label.anchor"
+					:class="'is-' + label.kind">{{ label.text }}</text>
 			</svg>
 		</div>
 	</article>

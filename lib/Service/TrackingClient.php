@@ -70,9 +70,9 @@ class TrackingClient {
 	/**
 	 * @return array<string, mixed>
 	 */
-	public function streams(string $token, int $activityId): array {
+	public function streams(string $token, int $activityId, string $keys = 'latlng,altitude,time'): array {
 		$query = http_build_query([
-			'keys' => 'latlng,altitude,time',
+			'keys' => $keys,
 			'key_by_type' => 'true',
 		]);
 		$data = $this->getJson($token, self::BASE . '/activities/' . $activityId . '/streams?' . $query);

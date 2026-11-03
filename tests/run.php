@@ -75,6 +75,9 @@ check(str_contains($gpx, '<ele>55.0</ele>'), 'elevation in the point');
 check(str_contains($gpx, 'A &amp; B &lt;run&gt;'), 'name is escaped');
 check(str_contains($gpx, '2026-10-22T06:40:30Z') || str_contains($gpx, gmdate('Y-m-d\TH:i:s\Z', 1761110400 + 30)), 'time offset');
 check((new GpxBuilder())->build('x', 'Run', 0, [], [], []) === '', 'no gpx without points');
+$withHeartRate = (new GpxBuilder())->build('hr', 'Run', 1761110400, [[52.5, 13.4], [52.51, 13.41]], [40, 55], [0, 30], [0, 142]);
+check(str_contains($withHeartRate, '>142<'), 'heart rate is stored');
+check(str_contains($withHeartRate, 'TrackPointExtension'), 'heart rate uses the track point extension');
 
 $name = ActivityPath::filename(new DateTimeImmutable('2026-10-22 08:00:00', $tz), 99, 'Morning Run');
 check($name === '2026-10-22_99_morning-run.gpx', 'filename');

@@ -100,7 +100,7 @@ class SyncService {
 						}
 						$streams = [];
 					}
-					$outcome = $this->store($uid, $activityId, $detail, $streams, $existing);
+					$outcome = $this->store($uid, $activityId, $detail, $streams, $existing, $token);
 					if ($outcome === 'created') {
 						$created++;
 					} elseif ($outcome === 'updated') {
@@ -157,7 +157,7 @@ class SyncService {
 			}
 			$streams = [];
 		}
-		$outcome = $this->store($uid, $activityId, $detail, $streams, $existing);
+		$outcome = $this->store($uid, $activityId, $detail, $streams, $existing, $token);
 		if ($previousFileId !== null) {
 			$fresh = $this->activities->findByActivityId($uid, $activityId);
 			$newFileId = $fresh?->getFileId();
@@ -192,7 +192,7 @@ class SyncService {
 	 * @param array<string, mixed> $streams
 	 * @return 'created'|'updated'|'skipped'
 	 */
-	private function store(string $uid, int $activityId, array $detail, array $streams, ?Activity $existing): string {
+	private function store(string $uid, int $activityId, array $detail, array $streams, ?Activity $existing, string $token): string {
 		$name = trim((string)($detail['name'] ?? ''));
 		if ($name === '') {
 			$name = 'Activity ' . $activityId;
@@ -210,7 +210,8 @@ class SyncService {
 		$latlng = $this->series($streams, 'latlng');
 		$altitude = $this->series($streams, 'altitude');
 		$time = $this->series($streams, 'time');
-		$gpx = $this->gpxBuilder->build($name, $sport, $startTime, $latlng, $altitude, $time);
+		$heartRate = $this->heartRateSeries($token, $activityId, $detail);
+		$gpx = $this->gpxBuilder->build($name, $sport, $startTime, $latlng, $altitude, $time, $heartRate);
 
 		$fileId = null;
 		if ($gpx !== '') {
@@ -264,9 +265,24 @@ class SyncService {
 	}
 
 	/**
-	 * @param array<string, mixed> $streams
+	 * Heart rate is a separate stream. Activities without a sensor must not fail the GPX download.
+	 *
+	 * @param array<string, mixed> $detail
 	 * @return list<mixed>
 	 */
+	private function heartRateSeries(string $token, int $activityId, array $detail): array {
+		if (empty($detail['has_heartrate'])) {
+			return [];
+		}
+		try {
+			return $this->series($this->tracking->streams($token, $activityId, 'heartrate'), 'heartrate');
+		} catch (RateLimitException $e) {
+			throw $e;
+		} catch (TrackingApiException) {
+			return [];
+		}
+	}
+
 	private function series(array $streams, string $key): array {
 		$stream = $streams[$key] ?? null;
 		if (!is_array($stream)) {

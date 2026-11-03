@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.7
+
+- GPX export includes heart rate when Strava provides it (Garmin TrackPointExtension)
+- Activity detail chart shows elevation plus speed and heart rate when available
+
 ## 1.0.6
 
 - Heatmap time range and activity filter moved into the main header controls

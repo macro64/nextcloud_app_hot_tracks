@@ -148,6 +148,8 @@ OC.L10N.register(
 "No GPS track. The summary is still available.":"Keine GPS-Spur. Die Zusammenfassung steht trotzdem zur Verfügung.",
 "Elevation along the track":"Höhe entlang der Spur",
 "Elevation profile":"Höhenprofil",
+"Speed":"Speed",
+"Heart rate":"HF",
 "Activity":"Aktivität",
 "Alpine ski":"Ski Alpin",
 "Backcountry ski":"Skitour",
