@@ -65,6 +65,7 @@ class Personal implements ISettings {
 			'sportsUrl' => $this->urlGenerator->linkToRoute('hot_tracks.personal.saveSports'),
 			'sportOptions' => $uid !== '' ? $this->sports->formOptions($uid) : [],
 			'disconnectUrl' => $this->urlGenerator->linkToRoute('hot_tracks.personal.disconnect'),
+			'appUrl' => $this->urlGenerator->linkToRoute('hot_tracks.page.index'),
 			'notice' => is_string($notice) ? $notice : '',
 			'error' => is_string($error) ? $error : '',
 		], '');

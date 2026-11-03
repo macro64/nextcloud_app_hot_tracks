@@ -106,7 +106,7 @@ class PersonalController extends Controller {
 			$secret !== '' ? $secret : null,
 			$proxyUrl,
 		);
-		$this->session->set('hot_tracks_personal_notice', $this->l->t('Credentials saved. Then connect in the app.'));
+		$this->session->set('hot_tracks_personal_notice', $this->l->t('API keys saved. Next: connect with Strava.'));
 		return new RedirectResponse($target);
 	}
 

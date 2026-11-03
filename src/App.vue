@@ -64,10 +64,10 @@ function setListMode(mode) {
 
 const initialError = new URLSearchParams(window.location.search).get('error')
 if (initialError === 'config') {
-	error.value = t('hot_tracks', 'Please enter your Strava API credentials under Settings → Hot Tracks first.')
+	error.value = t('hot_tracks', 'Finish setup first: add your Strava API keys under Settings → Hot Tracks.')
 }
 if (initialError === 'oauth') {
-	error.value = t('hot_tracks', 'Connecting to Strava failed. Please try again.')
+	error.value = t('hot_tracks', 'Strava connection failed. In Administration → Hot Tracks copy the Callback URL exactly into the auth broker redirect list (with or without index.php must match 1:1), then try again.')
 }
 
 const settingsUrl = '/settings/user/hot_tracks'
@@ -81,9 +81,10 @@ const selected = computed(() => {
 })
 
 const gpxCount = computed(() => (overview.value?.activities ?? []).filter((row) => row.hasGpx).length)
+const needsFirstSync = computed(() => Boolean(overview.value?.connected && (overview.value?.storedCount ?? 0) === 0))
 const emptyFilterHtml = computed(() => t(
 	'hot_tracks',
-	'Nothing for this filter yet. {linkStart}Choose sports in settings{linkEnd} and sync above.',
+	'Nothing for this filter. {linkStart}Adjust sports{linkEnd} or sync a wider range.',
 	{
 		linkStart: `<a href="${settingsUrl}">`,
 		linkEnd: '</a>',
@@ -156,7 +157,7 @@ onMounted(load)
 			<div>
 				<h2>{{ t('hot_tracks', 'Hot Tracks') }}</h2>
 			</div>
-			<div v-if="overview?.connected && !selected" class="hot-tracks-actions">
+			<div v-if="overview?.connected && !selected && !needsFirstSync" class="hot-tracks-actions">
 				<label class="hot-tracks-range">
 					<span class="hot-tracks-visually-hidden">{{ t('hot_tracks', 'Time range') }}</span>
 					<select v-model="syncRange" :disabled="syncing">
@@ -172,15 +173,21 @@ onMounted(load)
 		<p v-if="notice" class="hot-tracks-note">{{ notice }}</p>
 		<p v-if="loading" class="hot-tracks-empty">{{ t('hot_tracks', 'Loading …') }}</p>
 
-		<template v-else-if="overview && !overview.configured">
-			<p class="hot-tracks-empty">
-				{{ t('hot_tracks', 'Enter the Strava client ID and secret under Settings → Hot Tracks (API access at strava.com/settings/api). Then connect here.') }}
+		<section v-else-if="overview && !overview.configured" class="hot-tracks-setup" aria-labelledby="hot-tracks-setup-title">
+			<p class="hot-tracks-setup-step">{{ t('hot_tracks', 'Step 1 of 2') }}</p>
+			<h3 id="hot-tracks-setup-title">{{ t('hot_tracks', 'Add your Strava API keys') }}</h3>
+			<p class="hot-tracks-setup-lead">
+				{{ t('hot_tracks', 'Go to Settings → Hot Tracks. You will create a Strava API app, copy one domain, paste two keys, then save.') }}
 			</p>
-			<NcButton type="primary" :href="settingsUrl">{{ t('hot_tracks', 'Go to settings') }}</NcButton>
-		</template>
+			<NcButton type="primary" :href="settingsUrl">{{ t('hot_tracks', 'Open setup') }}</NcButton>
+		</section>
 
-		<template v-else-if="overview && !overview.connected">
-			<p class="hot-tracks-empty">{{ t('hot_tracks', 'Not connected yet. Activities are stored only in your profile, in the Hot Tracks folder.') }}</p>
+		<section v-else-if="overview && !overview.connected" class="hot-tracks-setup" aria-labelledby="hot-tracks-connect-title">
+			<p class="hot-tracks-setup-step">{{ t('hot_tracks', 'Step 2 of 2') }}</p>
+			<h3 id="hot-tracks-connect-title">{{ t('hot_tracks', 'Connect Strava') }}</h3>
+			<p class="hot-tracks-setup-lead">
+				{{ t('hot_tracks', 'Authorize Hot Tracks. Your activities stay private in this Nextcloud.') }}
+			</p>
 			<a class="hot-tracks-strava-connect" :href="connectUrl">
 				<img
 					:src="connectButtonSrc"
@@ -189,7 +196,26 @@ onMounted(load)
 					:alt="t('hot_tracks', 'Connect with Strava')"
 				>
 			</a>
-		</template>
+		</section>
+
+		<section v-else-if="needsFirstSync && !selected" class="hot-tracks-setup" aria-labelledby="hot-tracks-sync-title">
+			<p class="hot-tracks-setup-step">{{ t('hot_tracks', 'Almost done') }}</p>
+			<h3 id="hot-tracks-sync-title">{{ t('hot_tracks', 'Fetch your activities') }}</h3>
+			<p class="hot-tracks-setup-lead">
+				{{ t('hot_tracks', 'Choose how far back to go, then sync once. Tracks land in the Hot Tracks folder.') }}
+			</p>
+			<div class="hot-tracks-actions">
+				<label class="hot-tracks-range">
+					<span class="hot-tracks-range-label">{{ t('hot_tracks', 'How far back?') }}</span>
+					<select v-model="syncRange" :disabled="syncing">
+						<option v-for="range in syncRanges" :key="range.id" :value="range.id">{{ range.label }}</option>
+					</select>
+				</label>
+				<NcButton type="primary" :disabled="syncing" @click="syncNow">
+					{{ syncing ? t('hot_tracks', 'Syncing …') : t('hot_tracks', 'Sync now') }}
+				</NcButton>
+			</div>
+		</section>
 
 		<ActivityDetail
 			v-else-if="selected"
@@ -200,8 +226,13 @@ onMounted(load)
 
 		<div v-else-if="overview" class="hot-tracks-board">
 			<div>
-				<p v-if="overview.athleteName" class="hot-tracks-muted">
-					{{ t('hot_tracks', 'Connected as {name}', { name: overview.athleteName }) }}
+				<p v-if="overview.connected" class="hot-tracks-muted hot-tracks-connected-line">
+					<template v-if="overview.athleteName">
+						{{ t('hot_tracks', 'Connected as {name}', { name: overview.athleteName }) }}
+					</template>
+					<template v-else>
+						{{ t('hot_tracks', 'Connected.') }}
+					</template>
 					<template v-if="overview.storedCount">
 						· {{ n('hot_tracks', '%n activity stored', '%n activities stored', overview.storedCount) }}
 					</template>

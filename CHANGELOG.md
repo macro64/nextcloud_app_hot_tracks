@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.5
+
+- Clearer stepwise onboarding in the app and personal settings; secondary options stay collapsed
+- Admin page defaults to “nothing to configure”; shared login and operator URLs are tucked away
+- Disconnect Strava from the app and personal settings
+- OAuth callback no longer depends only on the PHP session (fixes failed connects behind proxies)
+- German translations for the new setup copy
+
 ## 1.0.4
 
 - OSM map tiles work under Nextcloud's `Referrer-Policy: no-referrer` via Leaflet `referrerPolicy`
