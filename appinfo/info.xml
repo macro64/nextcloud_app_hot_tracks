@@ -4,8 +4,12 @@
 	<id>hot_tracks</id>
 	<name>Hot Tracks</name>
 	<summary>Store your Strava activities privately in Nextcloud</summary>
-	<description><![CDATA[An admin sets up the shared login for the server. Each person connects under personal settings and sees their Strava ID there. Activities are stored as GPX in that person's folder, and the app shows the last 7 days.]]></description>
-	<version>1.0.9</version>
+	<description><![CDATA[<p>Hot Tracks allows you to connect to your Strava account via API. It will sync your activities and store them for your leisure in a folder in your Nextcloud. Your data, your files, your cloud.</p>
+<p>It will also list the activities and print a heatmap. It will also generate a link to bikerouter.de with the track encoded. It may do more than that in the future. Use the issue tracker on GitHub.</p>
+<p><strong>Notes:</strong><br>
+You will need a paid subscription to use the API. You would need one subscription (Administration settings) for the server. Multiple users will then be able to connect via a click on the Strava-connect button. They all share the API usage limit. At least, that's the theory.</p>
+<p>You can also use an auth proxy.</p>]]></description>
+	<version>1.0.10</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author mail="mail@walter-precht.de">Walter Precht</author>
 	<website>https://github.com/macro64/nextcloud_app_hot_tracks</website>

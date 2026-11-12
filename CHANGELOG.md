@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.10
+
+- Store description covers sync, heatmap, bikerouter.de and the shared API subscription
+
 ## 1.0.9
 
 - Administration settings hold only the shared login for the server
