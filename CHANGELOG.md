@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.11
+
+- App icon for Nextcloud and the App Store
+
 ## 1.0.10
 
 - Store description covers sync, heatmap, bikerouter.de and the shared API subscription
