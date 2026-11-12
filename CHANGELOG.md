@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.12
+
+- Store description is plain text (the App Store does not render HTML)
+
 ## 1.0.11
 
 - App icon for Nextcloud and the App Store
