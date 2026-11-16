@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.13
+
+- Author email is no longer published on the App Store page
+- App icon is cropped tighter so store thumbnails fill the square
+
 ## 1.0.12
 
 - Store description is plain text (the App Store does not render HTML)
